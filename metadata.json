@@ -1,0 +1,10 @@
+{
+  "name": "Remix MANZILIQ - Real Estate & Society Management",
+  "description": "Unified real estate discovery, plot management, online bookings, installment tracking, AI price estimation, and centralized multi-channel notification engine (SMS, Email, FCM Push, In-App) for Pakistan.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
