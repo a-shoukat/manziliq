@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../../types';
+import { ManzilIQLogo } from '../../components/common/ManzilIQLogo';
 import { 
   LogIn, 
   KeyRound, 
@@ -251,18 +252,23 @@ export const LoginView: React.FC<LoginViewProps> = ({
       <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xl space-y-6">
         
         {/* Top Header */}
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-slate-900 text-amber-400 font-black text-xl flex items-center justify-center mx-auto shadow-md">
-            M
+        <div className="text-center space-y-3">
+          <div 
+            onClick={() => onNavigate('/')} 
+            className="cursor-pointer inline-flex justify-center"
+          >
+            <ManzilIQLogo variant="full" size="md" theme="light" showTagline={true} />
           </div>
-          <h2 className="text-2xl font-black font-[Outfit] text-slate-900 tracking-tight">
-            {step === 'credentials' ? 'Sign In to MANZILIQ' : '2-Factor OTP Verification'}
-          </h2>
-          <p className="text-xs text-slate-500">
-            {step === 'credentials' 
-              ? 'Access official property, plot booking and installment portal' 
-              : `Enter the 6-digit PIN sent to ${matchedUser?.phone || 'your phone'}`}
-          </p>
+          <div className="pt-2 border-t border-slate-100">
+            <h2 className="text-xl font-extrabold font-[Outfit] text-slate-900 tracking-tight">
+              {step === 'credentials' ? 'Sign In to Your Account' : '2-Factor OTP Verification'}
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {step === 'credentials' 
+                ? 'Access official property, plot booking and installment portal' 
+                : `Enter the 6-digit PIN sent to ${matchedUser?.phone || 'your phone'}`}
+            </p>
+          </div>
         </div>
 
         {/* Return to Property Destination Banner */}

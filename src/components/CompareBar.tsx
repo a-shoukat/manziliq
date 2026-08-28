@@ -24,7 +24,7 @@ export const CompareBar: React.FC<CompareBarProps> = ({
         <Scale className="w-5 h-5 text-amber-400" />
         <div className="hidden sm:block">
           <p className="text-xs font-bold font-[Outfit]">Plot Comparison</p>
-          <p className="text-[10px] text-slate-400 font-mono">{compareList.length} of 3 selected</p>
+          <p className="text-[10px] text-slate-400 font-mono">{compareList.length} of 6 selected</p>
         </div>
       </div>
 

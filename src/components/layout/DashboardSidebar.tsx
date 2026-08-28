@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../../types';
+import { ManzilIQLogo } from '../common/ManzilIQLogo';
 import { 
   LayoutDashboard, 
   Layers, 
@@ -246,32 +247,22 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     <div className="flex flex-col h-full bg-white border-r border-slate-200">
       
       {/* Top Header & Brand */}
-      <div className={`p-4 border-b border-slate-100 flex items-center justify-between ${isCollapsed ? 'px-3 justify-center' : ''}`}>
+      <div className={`p-4 border-b border-slate-100 flex items-center justify-between ${isCollapsed ? 'px-2 justify-center' : ''}`}>
         {!isCollapsed ? (
           <button 
             onClick={() => handleNavClick('/')}
-            className="flex items-center gap-2.5 text-left cursor-pointer group"
+            className="flex items-center text-left cursor-pointer group py-0.5"
+            title="MANZIL IQ - Home"
           >
-            <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-amber-400 font-black text-lg shadow-sm group-hover:bg-emerald-950 transition">
-              M
-            </div>
-            <div>
-              <div className="font-bold text-slate-900 text-base leading-tight tracking-tight flex items-center gap-1.5">
-                <span>MANZILIQ</span>
-                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
-                  SaaS
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 truncate">Real Estate Platform</p>
-            </div>
+            <ManzilIQLogo variant="horizontal" size="sm" theme="light" showTagline={false} />
           </button>
         ) : (
           <button 
             onClick={() => handleNavClick('/')}
-            className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-amber-400 font-black text-lg shadow-sm cursor-pointer"
-            title="ManzilIQ"
+            className="flex items-center justify-center p-1.5 rounded-xl hover:bg-amber-50 border border-amber-200 transition cursor-pointer"
+            title="MANZIL IQ"
           >
-            M
+            <ManzilIQLogo variant="icon" size="sm" theme="light" />
           </button>
         )}
 

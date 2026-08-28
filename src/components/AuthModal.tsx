@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
 import { INITIAL_USERS } from '../data/mockData';
+import { ManzilIQLogo } from './common/ManzilIQLogo';
 import { X, ShieldCheck, User as UserIcon, Building2, Users, CheckCircle2, Phone, Mail, ArrowRight, Lock, Database } from 'lucide-react';
 import { isSupabaseConfigured, supabaseAuthHelper } from '../lib/supabase';
 
@@ -108,12 +109,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         </button>
 
         <div className="mb-6">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-amber-500/20 text-amber-400 font-bold text-xs px-2 py-0.5 rounded border border-amber-500/30">
-              Authentication Portal
+          <div className="flex items-center justify-between mb-3">
+            <ManzilIQLogo variant="compact" size="sm" theme="dark" showTagline={false} />
+            <span className="bg-amber-500/20 text-amber-400 font-bold text-[10px] px-2 py-0.5 rounded border border-amber-500/30 uppercase tracking-wider">
+              Identity Portal
             </span>
           </div>
-          <h2 className="text-2xl font-black font-[Outfit]">Access MANZILIQ Platform</h2>
+          <h2 className="text-xl font-extrabold font-[Outfit] text-white">Access MANZILIQ Platform</h2>
           <p className="text-slate-400 text-xs mt-1">
             Sign in to manage bookings, track installments, or explore verified housing properties and societies.
           </p>

@@ -44,6 +44,7 @@ import { appStore } from './lib/appStore';
 // Layout & Common Components
 import { AppNavbar } from './components/layout/AppNavbar';
 import { DashboardSidebar } from './components/layout/DashboardSidebar';
+import { ManzilIQLogo } from './components/common/ManzilIQLogo';
 import { Breadcrumbs } from './components/layout/Breadcrumbs';
 import { BookingModal } from './components/common/BookingModal';
 import { PaymentModal } from './components/common/PaymentModal';
@@ -349,12 +350,12 @@ export default function App() {
       setCompareList(compareList.filter(p => p.id !== property.id));
       triggerToast(`Removed "${property.title}" from comparison.`);
     } else {
-      if (compareList.length >= 3) {
-        triggerToast(`Comparison limit reached (maximum 3 properties/plots).`);
+      if (compareList.length >= 6) {
+        triggerToast(`Comparison limit reached (maximum 6 properties/plots).`);
         return;
       }
       setCompareList([...compareList, property]);
-      triggerToast(`Added "${property.title}" to compare list (${compareList.length + 1}/3).`);
+      triggerToast(`Added "${property.title}" to compare list (${compareList.length + 1}/6).`);
     }
   };
 
@@ -364,8 +365,8 @@ export default function App() {
       setCompareList(compareList.filter(p => p.id !== plot.id && p.plotNumber !== plot.plotNumber));
       triggerToast(`Removed Plot #${plot.plotNumber} from comparison.`);
     } else {
-      if (compareList.length >= 3) {
-        triggerToast(`Comparison limit reached (maximum 3 plots).`);
+      if (compareList.length >= 6) {
+        triggerToast(`Comparison limit reached (maximum 6 plots).`);
         return;
       }
       const mappedProp: Property = {
@@ -399,7 +400,7 @@ export default function App() {
         }
       };
       setCompareList([...compareList, mappedProp]);
-      triggerToast(`Added Plot #${plot.plotNumber} to comparison (${compareList.length + 1}/3).`);
+      triggerToast(`Added Plot #${plot.plotNumber} to comparison (${compareList.length + 1}/6).`);
     }
   };
 
@@ -448,7 +449,7 @@ export default function App() {
       }
     }));
 
-    const combined = [...matchedProps, ...matchedPlots].slice(0, 3);
+    const combined = [...matchedProps, ...matchedPlots].slice(0, 6);
     if (combined.length > 0) {
       setCompareList(combined);
       triggerToast(`Loaded "${comp.title}" with ${combined.length} plots into comparison!`);
@@ -1820,11 +1821,16 @@ export default function App() {
                 <ComparisonView
                   properties={compareList}
                   compareList={compareList}
+                  allProperties={properties}
                   plots={plots}
+                  societies={societies}
                   savedComparisons={savedComparisons}
                   currentUser={currentUser}
                   onRemove={(id) => setCompareList(compareList.filter(c => c.id !== id))}
                   onClear={() => setCompareList([])}
+                  onSetCompareList={(list) => setCompareList(list)}
+                  onToggleComparePlot={handleToggleComparePlot}
+                  onToggleCompareProperty={handleToggleCompare}
                   onSaveComparison={handleSaveComparison}
                   onDeleteSavedComparison={handleDeleteSavedComparison}
                   onLoadSavedComparison={handleLoadSavedComparison}
@@ -2056,11 +2062,11 @@ export default function App() {
             
             {/* Col 1: Brand & Municipal Scope */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black">
-                  M
-                </div>
-                <span className="text-xl font-black text-white tracking-tight">MANZILIQ</span>
+              <div 
+                onClick={() => handleNavigate('/')}
+                className="cursor-pointer group inline-block"
+              >
+                <ManzilIQLogo variant="horizontal" size="md" theme="dark" showTagline={true} />
               </div>
               <p className="text-slate-400 text-xs leading-relaxed">
                 Comprehensive Digitized Housing Society & Real Estate Marketplace for Pakistan.

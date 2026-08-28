@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Property } from '../../types';
+import { ManzilIQLogo } from './ManzilIQLogo';
 import {
   X,
   Printer,
@@ -173,19 +174,14 @@ Web Link: ${getPropertyShareUrl(property.id)}
           {/* Header & Logo */}
           <div className="flex flex-col sm:flex-row sm:items-start justify-between pb-5 border-b-2 border-slate-900 gap-4">
             <div>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center font-black text-sm">
-                  M
-                </div>
-                <span className="text-xl font-black font-[Outfit] tracking-tight text-slate-950">
-                  MANZIL<span className="text-amber-700">IQ</span>
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1 px-2 py-0.5 bg-slate-100 rounded">
+              <div className="flex items-center gap-3">
+                <ManzilIQLogo variant="compact" size="md" theme="light" showTagline={false} />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-700 px-2 py-0.5 bg-slate-100 border border-slate-300 rounded">
                   Official Property Dossier
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">
-                Verified Smart Housing Real Estate ERP & Land Registry System
+              <p className="text-xs text-slate-500 mt-1.5 font-medium">
+                DISCOVER • MANAGE • DECIDE SMARTER | AI-Powered Property & Society Management
               </p>
             </div>
 

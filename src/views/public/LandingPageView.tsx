@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Society, Property, Plot, User } from '../../types';
 import { 
   Building2, 
@@ -19,10 +19,23 @@ import {
   Star,
   Share2,
   Link as LinkIcon,
-  Check
+  Check,
+  Calculator,
+  ChevronDown,
+  ChevronUp,
+  DollarSign,
+  Award,
+  Maximize2
 } from 'lucide-react';
-import { copyToClipboard, getPropertyShareUrl } from '../../utils/shareUtils';
+import { HomePropertyCard } from '../../components/home/HomePropertyCard';
+import { HomeFilterBar, HomeFilterCriteria } from '../../components/home/HomeFilterBar';
+import { HomeComparisonDrawer } from '../../components/home/HomeComparisonDrawer';
+import { HomeAiValuationWidget } from '../../components/home/HomeAiValuationWidget';
+import { HomeVerifiedNocSection } from '../../components/home/HomeVerifiedNocSection';
+import { HomeAboutUsSection } from '../../components/home/HomeAboutUsSection';
 import { SharePropertyModal } from '../../components/common/SharePropertyModal';
+import { ManzilIQLogo } from '../../components/common/ManzilIQLogo';
+import { formatPKRNumber } from '../../utils/shareUtils';
 
 interface LandingPageViewProps {
   societies: Society[];
@@ -48,413 +61,630 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onNavigate,
   onSelectProperty = (id: string) => onNavigate(`/property/${id}`),
   onSelectSociety = (id: string) => onNavigate(`/society/${id}`),
-  onOpenEstimator = () => onNavigate('/price-estimator')
+  onOpenEstimator = () => onNavigate('/price-estimator'),
+  onInitiateBooking,
 }) => {
-  const [searchSociety, setSearchSociety] = useState('');
-  const [propertyType, setPropertyType] = useState('all');
-  const [budgetMax, setBudgetMax] = useState('all');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [shareModalProperty, setShareModalProperty] = useState<Property | null>(null);
-  const [landingToast, setLandingToast] = useState<string | null>(null);
+  // Hero Search Quick Form State
+  const [heroTab, setHeroTab] = useState<'all' | 'plot' | 'house' | 'commercial'>('all');
+  const [heroSearchCity, setHeroSearchCity] = useState<string>('all');
+  const [heroSearchSociety, setHeroSearchSociety] = useState<string>('all');
 
-  const handleCopyLink = async (e: React.MouseEvent, prop: Property) => {
-    e.stopPropagation();
-    const url = getPropertyShareUrl(prop.id);
-    const success = await copyToClipboard(url);
-    if (success) {
-      setCopiedId(prop.id);
-      setLandingToast(`Link Copied! Shareable link for "${prop.title}" copied.`);
-      setTimeout(() => {
-        setCopiedId(null);
-        setLandingToast(null);
-      }, 2500);
+  // Client-Side Real-time Filter State
+  const [filterCriteria, setFilterCriteria] = useState<HomeFilterCriteria>({
+    searchTerm: '',
+    city: 'all',
+    category: 'all',
+    minSizeMarla: 0,
+    maxSizeMarla: 30,
+    minPricePKR: 0,
+    maxPricePKR: 50000000,
+    statuses: [],
+  });
+
+  // Comparison State (Home Page Specific Matrix)
+  const [comparedProperties, setComparedProperties] = useState<Property[]>([]);
+
+  // Share & Toast Notification States
+  const [shareModalProperty, setShareModalProperty] = useState<Property | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Installment Calculator State
+  const [calcMarla, setCalcMarla] = useState<number>(5);
+  const [calcTenureMonths, setCalcTenureMonths] = useState<number>(36);
+  const [calcSocietyId, setCalcSocietyId] = useState<string>(societies[0]?.id || 'soc-1');
+
+  // FAQ Accordion State
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Distinct cities list
+  const citiesList = useMemo(() => {
+    const set = new Set<string>();
+    societies.forEach(s => { if (s.city) set.add(s.city); });
+    properties.forEach(p => { if (p.city) set.add(p.city); });
+    return Array.from(set);
+  }, [societies, properties]);
+
+  // Handle hero quick search submit
+  const handleHeroSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFilterCriteria(prev => ({
+      ...prev,
+      category: heroTab,
+      city: heroSearchCity,
+      searchTerm: heroSearchSociety !== 'all' ? (societies.find(s => s.id === heroSearchSociety)?.name || '') : prev.searchTerm,
+    }));
+    // Smooth scroll down to listings section
+    const listingsEl = document.getElementById('home-listings-section');
+    if (listingsEl) {
+      listingsEl.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  const handleShareClick = (e: React.MouseEvent, prop: Property) => {
-    e.stopPropagation();
-    setShareModalProperty(prop);
+  // Real-time client-side filtering on fetched dataset
+  const filteredProperties = useMemo(() => {
+    return properties.filter(prop => {
+      // 1. Search term (title, location, societyName, propertyId)
+      if (filterCriteria.searchTerm) {
+        const term = filterCriteria.searchTerm.toLowerCase();
+        const matchesTitle = prop.title.toLowerCase().includes(term);
+        const matchesLoc = prop.location.toLowerCase().includes(term);
+        const matchesSoc = (prop.societyName || '').toLowerCase().includes(term);
+        const matchesId = (prop.propertyId || prop.id).toLowerCase().includes(term);
+        if (!matchesTitle && !matchesLoc && !matchesSoc && !matchesId) return false;
+      }
+
+      // 2. City filter
+      if (filterCriteria.city !== 'all') {
+        const propCity = prop.city || (societies.find(s => s.id === prop.societyId)?.city) || '';
+        if (propCity.toLowerCase() !== filterCriteria.city.toLowerCase()) return false;
+      }
+
+      // 3. Category filter
+      if (filterCriteria.category !== 'all') {
+        const cat = (prop.category || prop.type).toLowerCase();
+        if (filterCriteria.category === 'plot' && !cat.includes('plot')) return false;
+        if (filterCriteria.category === 'house' && !cat.includes('house') && !cat.includes('villa')) return false;
+        if (filterCriteria.category === 'commercial' && !cat.includes('commercial') && !cat.includes('plaza')) return false;
+      }
+
+      // 4. Size Marla
+      if (prop.sizeMarla > filterCriteria.maxSizeMarla) return false;
+
+      // 5. Price Range
+      if (prop.pricePKR > filterCriteria.maxPricePKR) return false;
+      if (filterCriteria.minPricePKR > 0 && prop.pricePKR < filterCriteria.minPricePKR) return false;
+
+      // 6. Status Multi-select Chips
+      if (filterCriteria.statuses.length > 0) {
+        const currentStatus = prop.listingStatus || 'available';
+        if (!filterCriteria.statuses.includes(currentStatus)) return false;
+      }
+
+      return true;
+    });
+  }, [properties, filterCriteria, societies]);
+
+  // Toggle Property in comparison drawer (Max 3)
+  const handleToggleCompare = (property: Property) => {
+    setComparedProperties(prev => {
+      const exists = prev.some(p => p.id === property.id);
+      if (exists) {
+        return prev.filter(p => p.id !== property.id);
+      }
+      if (prev.length >= 3) {
+        showToast('Comparison limit: You can compare up to 3 properties at a time.');
+        return prev;
+      }
+      showToast(`Added "${property.title}" to Compare Matrix`);
+      return [...prev, property];
+    });
   };
 
-  const handleHeroSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    onNavigate('/marketplace');
+  const handleRemoveCompare = (id: string) => {
+    setComparedProperties(prev => prev.filter(p => p.id !== id));
   };
 
-  const featuredProperties = properties.filter(p => p.featured && !p.isDuplicateFlagged);
-  const totalPlotsCount = plots.length;
-  const availablePlotsCount = plots.filter(p => p.status === 'available').length;
+  const handleClearCompare = () => {
+    setComparedProperties([]);
+  };
+
+  // Calculator computations
+  const selectedCalcSociety = societies.find(s => s.id === calcSocietyId) || societies[0];
+  const avgMarlaPrice = selectedCalcSociety ? 550000 : 500000;
+  const calcTotalPrice = calcMarla * avgMarlaPrice;
+  const calcDownPayment = Math.round(calcTotalPrice * (selectedCalcSociety?.downPaymentPercent ? selectedCalcSociety.downPaymentPercent / 100 : 0.20));
+  const calcRemaining = calcTotalPrice - calcDownPayment;
+  const calcMonthlyInstallment = Math.round(calcRemaining / calcTenureMonths);
+
+  const faqs = [
+    {
+      q: "Are all housing societies on MANZILIQ approved by LDA, CDA, or local TMAs?",
+      a: "Yes! Every housing society listed on MANZILIQ undergoes strict legal auditing against official Development Authorities (LDA, CDA, RDA, FDA) and Tehsil Municipal Administrations (TMA) records before being approved for digital allotment."
+    },
+    {
+      q: "How does the online plot booking and 20% down payment escrow process work?",
+      a: "Select your desired plot from the Interactive Masterplan map, review the transparent down payment breakdown, and initiate online payment via EasyPaisa, JazzCash, or bank wire. Funds are held in escrow until your QR-coded allotment deed is registered."
+    },
+    {
+      q: "How does the AI Price Valuation engine estimate plot market rates?",
+      a: "Our heuristic machine learning model analyzes recent verified property sales in major housing societies, factoring in plot dimensions, boulevard width, proximity to civic amenities, and sector development status."
+    },
+    {
+      q: "What legal documents do I receive after completing plot booking?",
+      a: "You receive an official QR-verified Allotment Deed, a digital Booking Agreement with society stamp, and a downloadable payment schedule ledger."
+    }
+  ];
 
   return (
-    <div className="space-y-16 pb-20 bg-slate-50">
+    <div className="space-y-16 pb-24 bg-slate-50 text-slate-900 min-h-screen">
       
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white pt-16 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        {/* Subtle geometric pattern overlay */}
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
-        
-        <div className="max-w-5xl mx-auto text-center relative z-10 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Pakistan's Premier Verified Housing & Real Estate Ecosystem</span>
+      {/* 1. HERO PORTAL BANNER (High-End Real Estate Portal Backdrop) */}
+      <section className="relative text-white pt-16 pb-28 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        {/* Real Estate Architectural Background Image Layer */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=2000"
+            alt="Luxury Real Estate Architectural Horizon"
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover object-center scale-105 transform duration-1000"
+          />
+          {/* Deep Sapphire & Charcoal Gradient Overlay for Ultimate Readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-blue-950/92 via-slate-950/88 to-slate-950" />
+          <div className="absolute inset-0 bg-radial-at-c from-blue-600/15 via-transparent to-black/60 pointer-events-none" />
+        </div>
+
+        {/* Geometric subtle grid backdrop */}
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#f59e0b_1.2px,transparent_1.2px)] [background-size:28px_28px] pointer-events-none z-0" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-amber-600/20 rounded-full blur-3xl pointer-events-none z-0" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none z-0" />
+
+        <div className="max-w-6xl mx-auto text-center relative z-10 space-y-7">
+          
+          {/* Prominent Official MANZIL IQ Brand Crest Card */}
+          <div className="flex justify-center">
+            <ManzilIQLogo variant="hero" size="md" theme="dark" showTagline={true} />
           </div>
 
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-tight">
-            Buy, Verify & Manage Real Estate with <span className="text-amber-400">100% Transparency</span>
-          </h1>
+          {/* Main Display Headline */}
+          <div className="space-y-3 max-w-4xl mx-auto">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black font-[Outfit] tracking-tight text-white leading-tight">
+              Pakistan’s Premier NOC-Verified <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500">Smart Property Network</span>
+            </h1>
+            <p className="text-sm sm:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed">
+              Explore TMA & LDA approved masterplans, verify official NOC registries, calculate fair market AI valuations, and automate flexible installment schedules.
+            </p>
+          </div>
 
-          <p className="text-sm sm:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed">
-            Eliminating duplicate allotments and manual registry delays. Explore masterplans, automate installment schedules, and verify legal NOC documentation in real-time.
-          </p>
+          {/* Quick Search Portal Card */}
+          <div className="max-w-4xl mx-auto bg-white rounded-3xl p-4 sm:p-6 shadow-2xl border border-slate-200 text-slate-900 text-left space-y-4">
+            
+            {/* Category Tabs */}
+            <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+              {[
+                { id: 'all', label: 'All Inventory' },
+                { id: 'plot', label: 'Residential Plots' },
+                { id: 'house', label: 'Luxury Villas / Houses' },
+                { id: 'commercial', label: 'Commercial Plazas' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setHeroTab(tab.id as any)}
+                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                    heroTab === tab.id
+                      ? 'bg-blue-900 text-white shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-          {/* Quick Search Widget */}
-          <form onSubmit={handleHeroSearch} className="max-w-4xl mx-auto mt-8 bg-white/95 backdrop-blur-md p-3 sm:p-4 rounded-2xl shadow-2xl border border-slate-200 text-slate-900">
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-left">
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+            {/* Form Inputs Row */}
+            <form onSubmit={handleHeroSearchSubmit} className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-12 gap-3 items-end">
+              
+              {/* City Selection */}
+              <div className="lg:col-span-4">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  City / Location
+                </label>
+                <div className="relative">
+                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
+                    value={heroSearchCity}
+                    onChange={(e) => setHeroSearchCity(e.target.value)}
+                    className="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-900"
+                  >
+                    <option value="all">All Cities in Pakistan</option>
+                    {citiesList.map(city => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Society Selection */}
+              <div className="lg:col-span-5">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
                   Housing Society
                 </label>
-                <select
-                  value={searchSociety}
-                  onChange={(e) => setSearchSociety(e.target.value)}
-                  className="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-1 focus:ring-emerald-600"
+                <div className="relative">
+                  <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
+                    value={heroSearchSociety}
+                    onChange={(e) => setHeroSearchSociety(e.target.value)}
+                    className="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-900"
+                  >
+                    <option value="all">All Verified Housing Societies</option>
+                    {societies.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.city})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Search Submit CTA */}
+              <div className="lg:col-span-3">
+                <button
+                  type="submit"
+                  id="btn-hero-search-submit"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer active:scale-95"
                 >
-                  <option value="">All Housing Societies</option>
+                  <Search className="w-4 h-4" />
+                  <span>Search Properties</span>
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+
+          {/* High-Impact Trust Metrics Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto pt-6 text-center text-slate-300">
+            <div className="p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10">
+              <div className="text-xl sm:text-2xl font-black font-[Outfit] text-amber-400">100%</div>
+              <div className="text-[11px] font-semibold text-slate-300">NOC Audited Societies</div>
+            </div>
+            <div className="p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10">
+              <div className="text-xl sm:text-2xl font-black font-[Outfit] text-white">2,400+</div>
+              <div className="text-[11px] font-semibold text-slate-300">Plots Mapped in 3D</div>
+            </div>
+            <div className="p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10">
+              <div className="text-xl sm:text-2xl font-black font-[Outfit] text-emerald-400">0.00%</div>
+              <div className="text-[11px] font-semibold text-slate-300">Duplicate Allotment Rate</div>
+            </div>
+            <div className="p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10">
+              <div className="text-xl sm:text-2xl font-black font-[Outfit] text-white">24/7</div>
+              <div className="text-[11px] font-semibold text-slate-300">Digital Ledger & Escrow</div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 2. VERIFIED HOUSING SOCIETIES & MASTERPLANS SECTION */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <HomeVerifiedNocSection
+          societies={societies}
+          onSelectSociety={onSelectSociety}
+          onToast={showToast}
+        />
+      </section>
+
+      {/* 3. REAL-TIME FILTER BAR & FEATURED PROPERTY LISTINGS */}
+      <section id="home-listings-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        
+        {/* Section Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-900 uppercase tracking-wider">
+              <Building2 className="w-4 h-4" />
+              <span>Direct Society Allotments & Verified Resale</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black font-[Outfit] text-slate-900 tracking-tight">
+              Featured Properties & Available Plots
+            </h2>
+            <p className="text-sm text-slate-600 max-w-2xl">
+              Real-time available inventory with single-click legal verification, clear road specifications, and transparent prices.
+            </p>
+          </div>
+
+          <div className="text-xs font-bold text-slate-500">
+            Updated in real-time from masterplan ledgers
+          </div>
+        </div>
+
+        {/* Real-time Debounced Filter Bar */}
+        <HomeFilterBar
+          initialCriteria={filterCriteria}
+          onFilterChange={setFilterCriteria}
+          totalResultsCount={filteredProperties.length}
+          citiesList={citiesList}
+        />
+
+        {/* Properties Grid */}
+        {filteredProperties.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-4 shadow-xs">
+            <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+              <Search className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-slate-900">No matching properties found</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Try loosening your filter criteria, broadening the Marla plot size, or increasing the budget ceiling.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFilterCriteria({
+                searchTerm: '',
+                city: 'all',
+                category: 'all',
+                minSizeMarla: 0,
+                maxSizeMarla: 30,
+                minPricePKR: 0,
+                maxPricePKR: 50000000,
+                statuses: [],
+              })}
+              className="px-4 py-2 bg-blue-900 text-white rounded-xl text-xs font-bold hover:bg-blue-950 transition cursor-pointer"
+            >
+              Reset All Filters
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProperties.map(property => {
+              const isCompared = comparedProperties.some(p => p.id === property.id);
+
+              return (
+                <HomePropertyCard
+                  key={property.id}
+                  property={property}
+                  isCompared={isCompared}
+                  onToggleCompare={handleToggleCompare}
+                  onSelectProperty={onSelectProperty}
+                  onToast={showToast}
+                />
+              );
+            })}
+          </div>
+        )}
+
+      </section>
+
+      {/* 4. INTERACTIVE AI MARKET PRICE VALUATION ENGINE */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <HomeAiValuationWidget
+          societies={societies}
+          onOpenFullEstimator={onOpenEstimator}
+        />
+      </section>
+
+      {/* 5. INTERACTIVE EASY INSTALLMENT CALCULATOR WIDGET */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative bg-white rounded-3xl border border-slate-200/90 shadow-xl p-6 sm:p-10 space-y-8 overflow-hidden">
+          {/* Architectural Background Photo */}
+          <div className="absolute inset-0 z-0 opacity-15 pointer-events-none">
+            <img
+              src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=1600"
+              alt="Contemporary Villa Design"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-white/60" />
+          </div>
+          
+          <div className="relative z-10 space-y-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                  <Calculator className="w-4 h-4 text-emerald-600" />
+                  <span>Financial Planning Tool</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black font-[Outfit] text-slate-900 tracking-tight">
+                  Plot Installment & Down Payment Calculator
+                </h2>
+                <p className="text-sm text-slate-600 max-w-2xl">
+                  Simulate monthly installment commitments across approved housing societies with transparent down payments.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            {/* Left Controls (7 Cols) */}
+            <div className="lg:col-span-7 space-y-5">
+              {/* Society Selector */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Select Housing Society
+                </label>
+                <select
+                  value={calcSocietyId}
+                  onChange={(e) => setCalcSocietyId(e.target.value)}
+                  className="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-blue-900"
+                >
                   {societies.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>{s.name} ({s.city})</option>
                   ))}
                 </select>
               </div>
 
+              {/* Marla Size Buttons */}
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                  Property Category
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Plot Size: <span className="text-blue-900 font-extrabold">{calcMarla} Marla</span> ({calcMarla * 225} sq. ft.)
                 </label>
-                <select
-                  value={propertyType}
-                  onChange={(e) => setPropertyType(e.target.value)}
-                  className="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-1 focus:ring-emerald-600"
-                >
-                  <option value="all">Residential & Commercial</option>
-                  <option value="house">Houses / Villas</option>
-                  <option value="plot">Plots / Files</option>
-                  <option value="commercial">Commercial Plazas</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                  Plot Size / Marla
-                </label>
-                <select
-                  className="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-1 focus:ring-emerald-600"
-                >
-                  <option value="all">Any Size (3, 5, 7, 10 Marla)</option>
-                  <option value="3">3 Marla</option>
-                  <option value="5">5 Marla</option>
-                  <option value="10">10 Marla</option>
-                </select>
-              </div>
-
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  className="w-full flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition shadow-md cursor-pointer"
-                >
-                  <Search className="w-4 h-4" />
-                  <span>Search Inventory</span>
-                </button>
-              </div>
-            </div>
-          </form>
-
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto pt-8 border-t border-slate-800/80 text-left">
-            <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/60">
-              <div className="text-2xl font-black text-amber-400">{societies.length}</div>
-              <div className="text-xs text-slate-400">Verified Societies</div>
-            </div>
-            <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/60">
-              <div className="text-2xl font-black text-emerald-400">{availablePlotsCount} / {totalPlotsCount}</div>
-              <div className="text-xs text-slate-400">Available Plots Ready</div>
-            </div>
-            <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/60">
-              <div className="text-2xl font-black text-blue-400">PKR 14.8M+</div>
-              <div className="text-xs text-slate-400">Escrow Payments Tracked</div>
-            </div>
-            <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/60">
-              <div className="text-2xl font-black text-purple-400">0%</div>
-              <div className="text-xs text-slate-400">Double-Booking Rate</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Master-Planned Societies */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-1">
-              Registered Housing Societies
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Master-Planned Communities Across Pakistan
-            </h2>
-          </div>
-          <button
-            onClick={() => onNavigate('/societies')}
-            className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-900 cursor-pointer"
-          >
-            <span>View All Societies</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {societies.map((soc) => (
-            <div 
-              key={soc.id}
-              onClick={() => onSelectSociety(soc.id)}
-              className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-lg transition overflow-hidden group cursor-pointer flex flex-col"
-            >
-              <div className="relative h-44 overflow-hidden bg-slate-100">
-                <img 
-                  src={soc.heroImage} 
-                  alt={soc.name} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute top-3 left-3">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/90 text-white shadow-xs">
-                    <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                    {soc.approvalStatus.toUpperCase()}
-                  </span>
-                </div>
-                {soc.nocNumber && (
-                  <div className="absolute bottom-2 right-2 bg-slate-900/80 text-[10px] font-mono text-slate-200 px-2 py-0.5 rounded">
-                    NOC: {soc.nocNumber.split('/')[2] || soc.nocNumber}
-                  </div>
-                )}
-              </div>
-
-              <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-800 transition line-clamp-1">
-                    {soc.name}
-                  </h3>
-                  <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">{soc.location}</span>
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 grid grid-cols-3 gap-1 text-center text-xs">
-                  <div>
-                    <div className="font-bold text-slate-800">{soc.availablePlots}</div>
-                    <div className="text-[10px] text-slate-400">Available</div>
-                  </div>
-                  <div>
-                    <div className="font-bold text-slate-800">{soc.reservedPlots}</div>
-                    <div className="text-[10px] text-slate-400">Reserved</div>
-                  </div>
-                  <div>
-                    <div className="font-bold text-slate-800">{soc.soldPlots}</div>
-                    <div className="text-[10px] text-slate-400">Sold</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-emerald-800 font-bold pt-1">
-                  <span>Explore Masterplan Map</span>
-                  <ChevronRight className="w-4 h-4 text-emerald-700 group-hover:translate-x-1 transition" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Featured Properties Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-1">
-              Top Listings
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Featured Properties & Villa Deals
-            </h2>
-          </div>
-          <button
-            onClick={() => onNavigate('/marketplace')}
-            className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-900 cursor-pointer"
-          >
-            <span>Browse Full Marketplace</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {featuredProperties.slice(0, 3).map((prop) => (
-            <div
-              key={prop.id}
-              onClick={() => onSelectProperty(prop.id)}
-              className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-lg transition overflow-hidden group cursor-pointer flex flex-col"
-            >
-              <div className="relative h-48 overflow-hidden bg-slate-100">
-                <img 
-                  src={prop.images[0]} 
-                  alt={prop.title} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute top-3 left-3 flex gap-1.5">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900/90 text-white uppercase">
-                    {prop.type}
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-mono">
-                    {prop.sizeMarla} Marla
-                  </span>
-                </div>
-
-                {/* Quick Copy Link & Share Overlay on Card */}
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
-                  <button
-                    type="button"
-                    onClick={(e) => handleCopyLink(e, prop)}
-                    className={`p-1.5 rounded-lg backdrop-blur-md transition shadow-xs cursor-pointer ${
-                      copiedId === prop.id
-                        ? 'bg-emerald-700 text-white'
-                        : 'bg-white/90 hover:bg-white text-slate-700'
-                    }`}
-                    title={copiedId === prop.id ? 'Link Copied!' : 'Copy Property Link'}
-                  >
-                    {copiedId === prop.id ? <Check className="w-3.5 h-3.5" /> : <LinkIcon className="w-3.5 h-3.5" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => handleShareClick(e, prop)}
-                    className="p-1.5 rounded-lg backdrop-blur-md bg-white/90 hover:bg-white text-slate-700 hover:text-emerald-800 transition shadow-xs cursor-pointer"
-                    title="Share on WhatsApp & Socials"
-                  >
-                    <Share2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition line-clamp-2">
-                    {prop.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">{prop.location}</span>
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Price</div>
-                    <div className="text-base font-extrabold text-emerald-800">
-                      PKR {prop.pricePKR.toLocaleString('en-PK')}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button 
+                <div className="grid grid-cols-4 gap-2">
+                  {[3, 5, 10, 20].map(size => (
+                    <button
+                      key={size}
                       type="button"
-                      onClick={(e) => handleCopyLink(e, prop)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                        copiedId === prop.id 
-                          ? 'bg-emerald-700 text-white' 
+                      onClick={() => setCalcMarla(size)}
+                      className={`py-2 px-3 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                        calcMarla === size
+                          ? 'bg-blue-900 text-white shadow-xs'
                           : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                       }`}
                     >
-                      {copiedId === prop.id ? <Check className="w-3.5 h-3.5" /> : <LinkIcon className="w-3.5 h-3.5" />}
-                      <span>{copiedId === prop.id ? 'Copied!' : 'Copy'}</span>
+                      {size} Marla
                     </button>
-                    <button className="px-3 py-1.5 bg-emerald-800 text-white hover:bg-emerald-900 rounded-lg text-xs font-bold transition">
-                      View
+                  ))}
+                </div>
+              </div>
+
+              {/* Tenure Duration */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Installment Plan Duration: <span className="text-emerald-800 font-extrabold">{calcTenureMonths} Months ({calcTenureMonths / 12} Years)</span>
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[12, 24, 36, 48].map(months => (
+                    <button
+                      key={months}
+                      type="button"
+                      onClick={() => setCalcTenureMonths(months)}
+                      className={`py-2 px-3 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                        calcTenureMonths === months
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {months} Months
                     </button>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* AI Estimator & Innovation Callout */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 rounded-3xl p-8 sm:p-12 text-white shadow-xl flex flex-col lg:flex-row items-center justify-between gap-8">
-          <div className="space-y-4 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 text-xs font-bold">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Smart Valuation Engine</span>
-            </div>
-            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-              Curious What Your Plot or Property is Worth Today?
-            </h2>
-            <p className="text-slate-300 text-sm leading-relaxed">
-              Calculate instant data-driven fair market estimates based on historical society transactions, corner premium rates, development density, and boulevard frontage.
-            </p>
-            <div className="pt-2 flex flex-wrap gap-3">
+            {/* Right Summary Box (5 Cols) */}
+            <div className="lg:col-span-5 bg-slate-900 text-white p-6 sm:p-7 rounded-3xl space-y-4 shadow-xl border border-slate-800">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <span className="text-xs font-bold text-amber-400">Payment Breakdown</span>
+                <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">
+                  {selectedCalcSociety?.name}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Estimated Total Plot Value:</span>
+                  <span className="font-extrabold font-mono text-white text-sm">
+                    PKR {calcTotalPrice.toLocaleString('en-PK')}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+                  <span className="text-slate-300">Down Payment ({selectedCalcSociety?.downPaymentPercent || 20}%):</span>
+                  <span className="font-extrabold font-mono text-amber-400 text-sm">
+                    PKR {calcDownPayment.toLocaleString('en-PK')}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Monthly Installment ({calcTenureMonths}x):</span>
+                  <span className="font-black font-mono text-emerald-400 text-base">
+                    PKR {calcMonthlyInstallment.toLocaleString('en-PK')} / mo
+                  </span>
+                </div>
+              </div>
+
               <button
-                onClick={onOpenEstimator}
-                className="flex items-center gap-2 px-6 py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xl text-xs transition shadow-lg cursor-pointer"
+                type="button"
+                onClick={() => onSelectSociety(calcSocietyId)}
+                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer mt-2"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>Launch Free AI Price Estimator</span>
+                <span>View Masterplan & Book Online</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
-
-          <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 max-w-sm w-full space-y-3 text-xs">
-            <div className="font-bold text-amber-300 flex items-center justify-between">
-              <span>Sample Valuation Model</span>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">94% Confidence</span>
-            </div>
-            <div className="space-y-1.5 text-slate-200">
-              <div className="flex justify-between">
-                <span>Location:</span>
-                <span className="font-semibold text-white">Al-Rehman Garden (5 Marla)</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Base Market Rate:</span>
-                <span className="font-semibold text-white">PKR 2,450,000</span>
-              </div>
-              <div className="flex justify-between text-amber-300">
-                <span>Corner & Boulevard Index:</span>
-                <span className="font-semibold">+ PKR 300,000</span>
-              </div>
-              <div className="pt-2 border-t border-white/10 flex justify-between font-bold text-white text-sm">
-                <span>Estimated True Value:</span>
-                <span className="text-emerald-400">PKR 2,750,000</span>
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Share Property Modal */}
+      {/* 6. ABOUT US & EXECUTIVE LEADERSHIP SECTION */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <HomeAboutUsSection />
+      </section>
+
+      {/* 7. FREQUENTLY ASKED QUESTIONS (FAQ) ACCORDION */}
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-900 uppercase tracking-wider">
+            <span>Help & Assurance</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black font-[Outfit] text-slate-900">
+            Frequently Asked Questions
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600">
+            Clear answers about land registry verification, NOC approvals, and digital payments.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {faqs.map((faq, index) => {
+            const isOpen = expandedFaq === index;
+            return (
+              <div 
+                key={index}
+                className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs transition"
+              >
+                <button
+                  type="button"
+                  onClick={() => setExpandedFaq(isOpen ? null : index)}
+                  className="w-full p-4 sm:p-5 text-left font-bold text-xs sm:text-sm text-slate-900 flex items-center justify-between gap-4 cursor-pointer hover:text-blue-900"
+                >
+                  <span>{faq.q}</span>
+                  {isOpen ? (
+                    <ChevronUp className="w-4 h-4 text-blue-900 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                  )}
+                </button>
+
+                {isOpen && (
+                  <div className="px-4 sm:px-5 pb-5 pt-1 text-xs text-slate-600 leading-relaxed border-t border-slate-100 bg-slate-50/50 animate-in fade-in duration-200">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 8. STICKY COMPARISON DRAWER & MATRIX MODAL */}
+      <HomeComparisonDrawer
+        selectedProperties={comparedProperties}
+        onRemoveProperty={handleRemoveCompare}
+        onClearAll={handleClearCompare}
+        onSelectProperty={onSelectProperty}
+      />
+
+      {/* 9. SHARE PROPERTY MODAL */}
       {shareModalProperty && (
         <SharePropertyModal
-          isOpen={!!shareModalProperty}
+          isOpen={Boolean(shareModalProperty)}
           property={shareModalProperty}
           onClose={() => setShareModalProperty(null)}
-          onToast={(msg) => {
-            setLandingToast(msg);
-            setTimeout(() => setLandingToast(null), 3000);
-          }}
+          onToast={showToast}
         />
       )}
 
-      {/* Floating Action Toast Alert */}
-      {landingToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl font-bold text-xs shadow-2xl border border-slate-700 flex items-center gap-2 animate-bounce">
-          <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-          <span>{landingToast}</span>
+      {/* 10. FLOATING ACTION TOAST ALERT */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl font-bold text-xs shadow-2xl border border-slate-700 flex items-center gap-2 animate-in slide-in-from-bottom-5">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>{toastMessage}</span>
         </div>
       )}
+
     </div>
   );
 };

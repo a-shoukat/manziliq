@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, UserRole, NotificationItem } from '../types';
+import { ManzilIQLogo } from './common/ManzilIQLogo';
 import { 
   Building2, 
   MapPin, 
@@ -52,27 +53,12 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-4">
           
-          {/* Logo */}
+          {/* Official MANZIL IQ Vector Logo */}
           <div 
             onClick={() => onTabChange('home')}
-            className="flex items-center gap-3 cursor-pointer group"
+            className="flex items-center cursor-pointer group py-1"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-slate-950 font-extrabold shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform">
-              <Building2 className="w-6 h-6 stroke-[2.5]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-[Outfit] text-2xl font-black tracking-tight text-slate-900 group-hover:text-amber-600 transition-colors">
-                  MANZILIQ
-                </span>
-                <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-300 uppercase tracking-widest">
-                  PK
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium tracking-wide -mt-1 hidden sm:block">
-                Property & Housing Society Portal
-              </p>
-            </div>
+            <ManzilIQLogo variant="horizontal" size="md" theme="light" showTagline={true} />
           </div>
 
           {/* Nav Links */}

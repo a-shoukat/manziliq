@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, UserRole, VerificationRequest } from '../../types';
+import { ManzilIQLogo } from '../../components/common/ManzilIQLogo';
 import { 
   UserPlus, 
   Upload, 
@@ -368,8 +369,11 @@ export const SignupView: React.FC<SignupViewProps> = ({
           {/* Top Header & Fast Test Fill Helper */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="w-10 h-10 rounded-2xl bg-slate-900 text-amber-400 font-black text-lg flex items-center justify-center shadow-md">
-                M
+              <div 
+                onClick={() => onNavigate('/')} 
+                className="cursor-pointer inline-flex"
+              >
+                <ManzilIQLogo variant="compact" size="md" theme="light" showTagline={false} />
               </div>
               {step === 'form' && role === 'buyer' && (
                 <button
@@ -383,7 +387,7 @@ export const SignupView: React.FC<SignupViewProps> = ({
               )}
             </div>
 
-            <div className="text-center space-y-1">
+            <div className="text-center space-y-1 pt-1 border-t border-slate-100">
               <h2 className="text-2xl font-black font-[Outfit] text-slate-900 tracking-tight">
                 {step === 'form' ? 'Create Official MANZILIQ Account' : '2-Factor Mobile & CNIC Verification'}
               </h2>
