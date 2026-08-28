@@ -15,7 +15,8 @@ import {
   Share2,
   Link as LinkIcon,
   Check,
-  Tag
+  Tag,
+  Copy
 } from 'lucide-react';
 import { copyToClipboard, getPropertyShareUrl } from '../../utils/shareUtils';
 import { SharePropertyModal } from '../common/SharePropertyModal';
@@ -64,6 +65,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
   onToast
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
   const [internalShareOpen, setInternalShareOpen] = useState(false);
 
   const images = property.images && property.images.length > 0 ? property.images : [
@@ -75,6 +77,17 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
 
   // Extract key quick amenity tags
   const keyAmenities = (property.amenities || []).slice(0, 3);
+
+  const handleCopyPropertyId = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const idToCopy = property.propertyId || property.id;
+    const success = await copyToClipboard(idToCopy);
+    if (success) {
+      setCopiedId(true);
+      if (onToast) onToast(`Property ID "${idToCopy}" copied to clipboard!`);
+      setTimeout(() => setCopiedId(false), 2000);
+    }
+  };
 
   const handleCopyLink = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -150,10 +163,30 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
                 </span>
               )}
 
-              {/* Unique Prefix ID Tag */}
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-900 text-white font-mono font-bold text-[10px] tracking-wider shadow-2xs">
-                <Tag className="w-3 h-3 text-amber-400" />
+              {/* Unique Prefix ID Tag with Copy to Clipboard button */}
+              <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-0.5 rounded-lg bg-slate-900 text-white font-mono font-bold text-[10px] tracking-wider shadow-2xs">
+                <Tag className="w-3 h-3 text-amber-400 shrink-0" />
                 <span>{property.propertyId || property.id}</span>
+                <button
+                  type="button"
+                  id={`btn-copy-id-list-${property.id}`}
+                  onClick={handleCopyPropertyId}
+                  className={`p-0.5 px-1 rounded transition flex items-center gap-0.5 cursor-pointer ${
+                    copiedId 
+                      ? 'bg-emerald-600 text-white font-sans' 
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800 active:scale-90'
+                  }`}
+                  title="Copy Unique Property ID to Clipboard"
+                >
+                  {copiedId ? (
+                    <>
+                      <Check className="w-2.5 h-2.5 text-emerald-200" />
+                      <span className="text-[9px] font-sans font-semibold text-emerald-200">Copied!</span>
+                    </>
+                  ) : (
+                    <Copy className="w-2.5 h-2.5" />
+                  )}
+                </button>
               </span>
 
               {/* Sector / Block / Plot Number */}
@@ -457,9 +490,29 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           <div className="space-y-2">
             {/* Unique Prefix ID Tag & Location Badges */}
             <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-900 text-white font-mono font-bold text-[10px] tracking-wider shadow-2xs">
-                <Tag className="w-3 h-3 text-amber-400" />
+              <span className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-md bg-slate-900 text-white font-mono font-bold text-[10px] tracking-wider shadow-2xs">
+                <Tag className="w-3 h-3 text-amber-400 shrink-0" />
                 <span>{property.propertyId || property.id}</span>
+                <button
+                  type="button"
+                  id={`btn-copy-id-grid-${property.id}`}
+                  onClick={handleCopyPropertyId}
+                  className={`p-0.5 px-1 rounded transition flex items-center gap-0.5 cursor-pointer ${
+                    copiedId 
+                      ? 'bg-emerald-600 text-white font-sans' 
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800 active:scale-90'
+                  }`}
+                  title="Copy Unique Property ID to Clipboard"
+                >
+                  {copiedId ? (
+                    <>
+                      <Check className="w-2.5 h-2.5 text-emerald-200" />
+                      <span className="text-[9px] font-sans font-semibold text-emerald-200">Copied!</span>
+                    </>
+                  ) : (
+                    <Copy className="w-2.5 h-2.5" />
+                  )}
+                </button>
               </span>
               {property.sector && (
                 <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md">
