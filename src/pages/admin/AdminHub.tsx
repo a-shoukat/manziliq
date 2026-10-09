@@ -5,6 +5,7 @@ export default function AdminHub({ onNavigate }: { onNavigate: (p: string) => vo
     { page: 'admin-disputes', title: 'Dispute Management', desc: 'Flagged transactions, mediation, freeze plots' },
     { page: 'admin-templates', title: 'Legal Templates', desc: 'Allotment, sale agreement, transfer deed' },
     { page: 'admin-analytics', title: 'Platform Analytics', desc: 'GMV, users, plots, growth' },
+    { page: 'admin-settings', title: 'System Settings', desc: 'App settings + audit log' },
     { page: 'broadcast', title: 'Broadcast', desc: 'Announcements (v10)' },
   ];
   return (

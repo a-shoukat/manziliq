@@ -33,6 +33,7 @@ import PriceEstimator from './pages/PriceEstimator';
 import Inbox from './pages/notifications/Inbox';
 import Broadcast from './pages/notifications/Broadcast';
 import AdminHub from './pages/admin/AdminHub';
+import SystemSettings from './pages/admin/SystemSettings';
 import Disputes from './pages/admin/Disputes';
 import LegalTemplates from './pages/admin/LegalTemplates';
 import PlatformAnalytics from './pages/admin/PlatformAnalytics';
@@ -44,12 +45,28 @@ import CustomerActivity from './pages/analytics/CustomerActivity';
 import Navbar from './components/Navbar';
 import AiAssistant from './components/AiAssistant';
 import ProtectedRoute from './components/ProtectedRoute';
+import { startBroadcastScheduler, type ScheduledBroadcast } from './lib/scheduler';
+import { allSocietyIds, allUserIds, societyCustomerIds, societyDealerIds } from './lib/notify';
+import { useEffect } from 'react';
 import './index.css';
 
 function Shell() {
   const [page, setPage] = useState('login');
   const [arg, setArg] = useState<string | undefined>(undefined);
   const { session, loading } = useAuth();
+
+  // start the scheduled-broadcast worker once per session
+  useEffect(() => {
+    if (!session) return;
+    const resolveAudience = async (b: ScheduledBroadcast): Promise<string[]> => {
+      if (b.audience === 'customers') return societyCustomerIds(b.owner_id);
+      if (b.audience === 'dealers') return societyDealerIds(b.owner_id);
+      if (b.audience === 'societies') return allSocietyIds();
+      if (b.audience === 'all') return allUserIds();
+      return [];
+    };
+    startBroadcastScheduler(resolveAudience, session.user.id);
+  }, [session]);
 
   const navigate = (p: string, a?: string) => {
     setPage(p);
@@ -209,6 +226,10 @@ function Shell() {
       ) : page === 'admin-disputes' ? (
         <ProtectedRoute onNavigate={navigate} allowedRoles={['super_admin']}>
           <Disputes onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'admin-settings' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['super_admin']}>
+          <SystemSettings onNavigate={navigate} />
         </ProtectedRoute>
       ) : page === 'admin-templates' ? (
         <ProtectedRoute onNavigate={navigate} allowedRoles={['super_admin']}>

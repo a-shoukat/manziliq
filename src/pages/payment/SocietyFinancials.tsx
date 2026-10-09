@@ -6,6 +6,7 @@ import {
   fetchSocietyPayments,
   financialSummary,
   savePlan,
+  updatePaymentSchedule,
   verifyPayment,
   type FinancialSummary,
 } from '../../lib/payment';
@@ -25,6 +26,10 @@ export default function SocietyFinancials({ onNavigate }: { onNavigate: (p: stri
   const [loading, setLoading] = useState(true);
   const [rejecting, setRejecting] = useState<Payment | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [editing, setEditing] = useState<Payment | null>(null);
+  const [editDue, setEditDue] = useState('');
+  const [editAmount, setEditAmount] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
 
   const [pName, setPName] = useState('');
   const [pMonths, setPMonths] = useState('12');
@@ -215,6 +220,40 @@ export default function SocietyFinancials({ onNavigate }: { onNavigate: (p: stri
             </div>
           )}
 
+          {editing && (
+            <div className="modal-backdrop" onClick={() => setEditing(null)}>
+              <div className="card modal" onClick={(e) => e.stopPropagation()}>
+                <h3>Edit schedule</h3>
+                <p className="muted small">{editing.label} · {editing.booking_ref}</p>
+                {editError && <div className="error">{editError}</div>}
+                <label>Due date
+                  <input type="date" value={editDue} onChange={(e) => setEditDue(e.target.value)} />
+                </label>
+                <label>Amount (PKR)
+                  <input type="number" min={0} value={editAmount} onChange={(e) => setEditAmount(e.target.value)} />
+                </label>
+                <div className="link-row">
+                  <button
+                    className="btn small"
+                    onClick={async () => {
+                      setEditError(null);
+                      try {
+                        await updatePaymentSchedule(editing.id, { due_date: editDue || null, amount: parseFloat(editAmount) || 0 });
+                        setEditing(null);
+                        if (societyId) load(societyId);
+                      } catch (err) {
+                        setEditError(err instanceof Error ? err.message : 'Update failed');
+                      }
+                    }}
+                  >
+                    Save
+                  </button>
+                  <button className="btn secondary small" onClick={() => setEditing(null)}>Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <h3>Payment history</h3>
           <div className="table-wrap">
             <table className="data-table">
@@ -231,6 +270,11 @@ export default function SocietyFinancials({ onNavigate }: { onNavigate: (p: stri
                     <td className="row-actions">
                       {p.proof_url && (
                         <a className="link inline" href={p.proof_url} target="_blank" rel="noreferrer">Receipt</a>
+                      )}
+                      {p.status === 'pending' && (
+                        <button className="link inline" onClick={() => { setEditing(p); setEditDue(p.due_date ?? ''); setEditAmount(String(p.amount)); setEditError(null); }}>
+                          Edit
+                        </button>
                       )}
                     </td>
                   </tr>

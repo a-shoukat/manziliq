@@ -11,6 +11,7 @@ import {
   societyCustomerIds,
   societyDealerIds,
 } from '../../lib/notify';
+import { cancelBroadcast, fetchMyBroadcasts, scheduleBroadcast, type ScheduledBroadcast } from '../../lib/scheduler';
 import type { MessageTemplate } from '../../types';
 
 /** WBS: Broadcast features + message template library */
@@ -20,6 +21,8 @@ export default function Broadcast({ onNavigate }: { onNavigate: (p: string) => v
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [scheduled, setScheduled] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState('');
+  const [broadcasts, setBroadcasts] = useState<ScheduledBroadcast[]>([]);
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [tTitle, setTTitle] = useState('');
   const [tBody, setTBody] = useState('');
@@ -50,8 +53,13 @@ export default function Broadcast({ onNavigate }: { onNavigate: (p: string) => v
     setTemplates(await fetchTemplates(session?.user.id ?? null));
   };
 
+  const loadBroadcasts = async () => {
+    if (session) setBroadcasts(await fetchMyBroadcasts(session.user.id));
+  };
+
   useEffect(() => {
     loadTemplates();
+    loadBroadcasts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -69,15 +77,20 @@ export default function Broadcast({ onNavigate }: { onNavigate: (p: string) => v
       setMsg('Pick an audience and write a title + message.');
       return;
     }
+    if (!session) return;
     setSending(true);
     try {
       const ids = (await resolveAudience()).filter((id) => id !== session?.user.id);
       if (ids.length === 0) {
         setMsg('No recipients in this audience.');
       } else if (scheduled) {
-        setMsg(`Scheduled — will send to ${ids.length} recipients (scheduler runs hourly).`);
-        // store as future notification batch marker
-        await notify(ids, title.trim(), body.trim(), 'broadcast_scheduled');
+        if (!scheduledAt) {
+          setMsg('Pick a date & time for the scheduled broadcast.');
+        } else {
+          await scheduleBroadcast(session.user.id, audience, title, body, new Date(scheduledAt), ids.length);
+          setMsg(`Scheduled for ${new Date(scheduledAt).toLocaleString()} — will send to ${ids.length} recipients automatically.`);
+          loadBroadcasts();
+        }
       } else {
         await notify(ids, title.trim(), body.trim(), 'broadcast');
         setMsg(`Sent to ${ids.length} recipients.`);
@@ -149,12 +162,37 @@ export default function Broadcast({ onNavigate }: { onNavigate: (p: string) => v
             <input type="checkbox" checked={scheduled} onChange={(e) => setScheduled(e.target.checked)} />
             Schedule for later
           </label>
+          {scheduled && (
+            <label>Send at
+              <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
+            </label>
+          )}
           <button className="btn" disabled={sending} onClick={send}>
             {sending ? 'Sending…' : scheduled ? 'Schedule' : 'Send now'}
           </button>
           <p className="muted small" style={{ marginTop: 10 }}>
-            SMS / Email / FCM channels plug into the notify() helper once API keys are added.
+            Scheduled broadcasts are sent automatically when due (checked every 5 minutes while the app is open).
           </p>
+        </div>
+
+        <div className="card">
+          <h3>Scheduled broadcasts</h3>
+          {broadcasts.length === 0 ? <p className="muted small">None yet.</p> : (
+            <div className="table-wrap"><table className="data-table">
+              <thead><tr><th>Title</th><th>Audience</th><th>Scheduled</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                {broadcasts.map((b) => (
+                  <tr key={b.id}>
+                    <td>{b.title}</td>
+                    <td className="small">{b.audience}</td>
+                    <td className="small">{new Date(b.scheduled_at).toLocaleString()}</td>
+                    <td>{b.sent_at ? <span className="badge ok">Sent ({b.recipient_count})</span> : <span className="badge warn">Pending</span>}</td>
+                    <td>{!b.sent_at && <button className="link inline" onClick={async () => { await cancelBroadcast(b.id); loadBroadcasts(); }}>Cancel</button>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+          )}
         </div>
 
         <div className="card">

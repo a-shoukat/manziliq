@@ -7,6 +7,8 @@ interface DocContext {
   cnic: string;
   plot: string;
   society: string;
+  society_name: string;
+  society_address: string;
   amount: string;
   date: string;
   reference_no: string;
@@ -18,6 +20,8 @@ async function buildContext(booking: Booking): Promise<DocContext> {
   let cnic = '—';
   let plot = booking.plot_label ?? '—';
   let society = '—';
+  let society_name = 'ManzilIQ';
+  let society_address = '';
   let amount = '—';
 
   if (supabase) {
@@ -38,7 +42,11 @@ async function buildContext(booking: Booking): Promise<DocContext> {
     if (booking.society_id) {
       const { data: s } = await supabase.from('society_details').select('society_name, address').eq('profile_id', booking.society_id).single();
       const ss = s as { society_name: string; address: string } | null;
-      if (ss) society = `${ss.society_name}, ${ss.address}`;
+      if (ss) {
+        society = `${ss.society_name}, ${ss.address}`;
+        society_name = ss.society_name;
+        society_address = ss.address;
+      }
     }
   }
 
@@ -47,6 +55,8 @@ async function buildContext(booking: Booking): Promise<DocContext> {
     cnic,
     plot,
     society,
+    society_name,
+    society_address,
     amount,
     date: new Date().toLocaleDateString(),
     reference_no: booking.reference_no,
@@ -86,6 +96,9 @@ export async function generateDocument(
     if ((tpl as { body: string } | null)?.body) body = (tpl as { body: string }).body;
   }
   const rendered = fill(body, ctx);
+  // WBS: society letterhead on generated PDFs
+  const letterhead = `═══════════════════════════════════════\n${ctx.society_name.toUpperCase()}\n${ctx.society_address}\n═══════════════════════════════════════\n\n`;
+  const finalBody = letterhead + rendered;
 
   const { data: prev } = await supabase
     .from('generated_documents')
@@ -110,7 +123,7 @@ export async function generateDocument(
       dealer_id: booking.dealer_id,
       doc_type: docType,
       title: `${docType.replace(/_/g, ' ')} — ${booking.reference_no}`,
-      body: rendered,
+      body: finalBody,
       version,
       expires_at: expires,
     })

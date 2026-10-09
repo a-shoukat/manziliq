@@ -13,9 +13,10 @@ interface QueueItem {
   detailTable: string;
 }
 
-/** WBS: Admin Panel — Society Verification (6) + Dealer Verification (5) */
+/** WBS: Admin Panel — Society Verification (6) + Dealer Verification (5) + Customer CNIC review */
 export default function AdminVerification({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [items, setItems] = useState<QueueItem[]>([]);
+  const [customers, setCustomers] = useState<(QueueItem & { cnic_number: string | null })[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
 
@@ -40,6 +41,20 @@ export default function AdminVerification({ onNavigate }: { onNavigate: (p: stri
       out.push({ ...p, detail: d ?? null, detailTable: table });
     }
     setItems(out);
+
+    // customer CNIC review queue (WBS: Customer CNIC verification)
+    const { data: buyers } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'buyer')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    const custOut: (QueueItem & { cnic_number: string | null })[] = [];
+    for (const p of buyers ?? []) {
+      const { data: d } = await supabase.from('customer_details').select('cnic_number, contact_phone').eq('profile_id', p.id).single();
+      custOut.push({ ...p, detail: null, detailTable: 'customer_details', cnic_number: (d as { cnic_number: string | null } | null)?.cnic_number ?? null });
+    }
+    setCustomers(custOut);
     setLoading(false);
   };
 
@@ -139,6 +154,30 @@ export default function AdminVerification({ onNavigate }: { onNavigate: (p: stri
             {pending.map(renderRow)}
             <h3 style={{ marginTop: 24 }}>Decided ({decided.length})</h3>
             {decided.map(renderRow)}
+
+            <h3 style={{ marginTop: 32 }}>Customer CNIC review</h3>
+            <p className="muted small">Buyers are auto-approved at signup — review their CNIC numbers here.</p>
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead><tr><th>Email</th><th>CNIC</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                  {customers.map((c) => (
+                    <tr key={c.id}>
+                      <td className="small">{c.email}</td>
+                      <td>{c.cnic_number ?? <span className="muted">—</span>}</td>
+                      <td><span className={`badge ${c.verification_status === 'approved' ? 'ok' : c.verification_status === 'pending' ? 'warn' : 'warn'}`}>{c.verification_status}</span></td>
+                      <td>
+                        <div className="link-row">
+                          <button className="btn small" disabled={acting === c.id} onClick={() => setStatus(c.id, 'approved')}>Verify</button>
+                          <button className="btn secondary small" disabled={acting === c.id} onClick={() => setStatus(c.id, 'rejected')}>Reject</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {customers.length === 0 && <p className="muted small">No customers yet.</p>}
+            </div>
           </>
         )}
       </div>

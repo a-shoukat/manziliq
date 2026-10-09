@@ -38,6 +38,20 @@ export default function MyPayments({ onNavigate }: { onNavigate: (p: string) => 
     (p) => p.status === 'pending' && p.due_date && p.due_date <= today,
   );
 
+  // due-date calendar (WBS: calendar-style due-date view)
+  const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
+  const dueByDate: Record<string, Payment[]> = {};
+  for (const p of list) {
+    if (!p.due_date) continue;
+    (dueByDate[p.due_date] ??= []).push(p);
+  }
+  const calDays: (number | null)[] = [];
+  const firstDow = new Date(calMonth.y, calMonth.m, 1).getDay();
+  const daysInMonth = new Date(calMonth.y, calMonth.m + 1, 0).getDate();
+  for (let i = 0; i < firstDow; i++) calDays.push(null);
+  for (let d = 1; d <= daysInMonth; d++) calDays.push(d);
+  const monthName = new Date(calMonth.y, calMonth.m, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+
   const doPay = async () => {
     if (!paying) return;
     try {
@@ -71,7 +85,41 @@ export default function MyPayments({ onNavigate }: { onNavigate: (p: string) => 
       {loading ? <p className="muted">Loading…</p> : list.length === 0 ? (
         <p className="muted">No payment schedule yet — it appears after your booking is approved.</p>
       ) : (
-        <div className="table-wrap">
+        <>
+          <div className="card" style={{ marginBottom: 16 }}>
+            <div className="topbar">
+              <h3 style={{ margin: 0 }}>Due-date calendar</h3>
+              <div className="link-row">
+                <button className="btn secondary small" onClick={() => setCalMonth(({ y, m }) => m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 })}>‹ Prev</button>
+                <strong>{monthName}</strong>
+                <button className="btn secondary small" onClick={() => setCalMonth(({ y, m }) => m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 })}>Next ›</button>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+                <div key={d} className="muted small" style={{ textAlign: 'center', fontWeight: 600 }}>{d}</div>
+              ))}
+              {calDays.map((d, i) => {
+                if (d === null) return <div key={i} />;
+                const key = `${calMonth.y}-${String(calMonth.m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const dues = dueByDate[key] ?? [];
+                const isToday = key === today;
+                return (
+                  <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: 4, minHeight: 52, background: isToday ? 'var(--accent-soft)' : undefined }}>
+                    <div className="small" style={{ fontWeight: isToday ? 700 : 400 }}>{d}</div>
+                    {dues.map((p) => (
+                      <div key={p.id} className="small" style={{ fontSize: 11 }} title={`${p.label} — ${formatPrice(p.amount)}`}>
+                        <span className={`badge ${p.status === 'confirmed' ? 'ok' : p.status === 'pending' ? 'warn' : ''}`} style={{ fontSize: 10 }}>
+                          {p.label?.slice(0, 12)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="table-wrap">
           <table className="data-table">
             <thead><tr><th>Booking</th><th>Label</th><th>Due</th><th>Amount</th><th>Late fee</th><th>Status</th><th></th></tr></thead>
             <tbody>
@@ -111,7 +159,8 @@ export default function MyPayments({ onNavigate }: { onNavigate: (p: string) => 
               })}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
 
       {paying && (

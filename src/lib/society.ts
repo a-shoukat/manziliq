@@ -212,3 +212,25 @@ export async function updateSocietyProfile(societyId: string, input: { society_n
     .eq('profile_id', societyId);
   if (error) throw error;
 }
+
+/** Per-dealer sales performance stats for a society (WBS: dealer performance metrics). */
+export async function fetchDealerStats(societyId: string): Promise<Record<string, { bookings: number; converted: number; revenue: number }>> {
+  const supabase = getSupabase();
+  if (!supabase) return {};
+  const stats: Record<string, { bookings: number; converted: number; revenue: number }> = {};
+  const { data: bookings } = await supabase.from('bookings').select('id, dealer_id, status').eq('society_id', societyId).not('dealer_id', 'is', null);
+  for (const b of (bookings as { id: string; dealer_id: string; status: string }[]) ?? []) {
+    const s = stats[b.dealer_id] ?? { bookings: 0, converted: 0, revenue: 0 };
+    s.bookings += 1;
+    if (b.status === 'completed' || b.status === 'approved' || b.status === 'token_paid') s.converted += 1;
+    stats[b.dealer_id] = s;
+  }
+  const { data: payments } = await supabase.from('payments').select('amount, booking_id').eq('society_id', societyId).eq('status', 'confirmed');
+  const bookingDealer: Record<string, string> = {};
+  for (const b of (bookings as { id: string; dealer_id: string }[]) ?? []) bookingDealer[b.id] = b.dealer_id;
+  for (const p of (payments as { amount: number; booking_id: string }[]) ?? []) {
+    const did = bookingDealer[p.booking_id];
+    if (did && stats[did]) stats[did].revenue += Number(p.amount) || 0;
+  }
+  return stats;
+}

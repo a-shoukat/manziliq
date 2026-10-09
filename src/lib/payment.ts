@@ -2,6 +2,7 @@ import { getSupabase } from './supabase';
 import { uploadDocument } from './storage';
 import { notify } from './notify';
 import { generateDocument } from './legal';
+import { logAudit } from './audit';
 import type { Booking, InstallmentPlan, Payment, PaymentMethod } from '../types';
 
 const DEFAULT_PLANS: Record<string, { months: number; downPct: number }> = {
@@ -209,6 +210,9 @@ export async function verifyPayment(
     })
     .eq('id', paymentId);
   if (error) throw error;
+  // audit: payment verification decision
+  const { data: verifier } = await supabase.from('profiles').select('email').eq('id', verifierId).single();
+  logAudit(verifierId, (verifier as { email: string } | null)?.email ?? null, approved ? 'payment_verified' : 'payment_rejected', 'payment', paymentId, `${pay.label ?? 'Payment'} PKR ${Number(pay.amount).toLocaleString()}`);
   // notify customer of the decision
   if (pay.customer_id) {
     notify(
@@ -389,4 +393,20 @@ export async function financialSummary(societyId: string): Promise<FinancialSumm
     commissionPayable,
     monthly: [...monthly.entries()].map(([month, total]) => ({ month, total })).sort((a, b) => a.month.localeCompare(b.month)).slice(-6),
   };
+}
+
+/** Society admin edits a payment's due date / amount (WBS: per-booking schedule editing). */
+export async function updatePaymentSchedule(
+  paymentId: string,
+  input: { due_date?: string | null; amount?: number },
+): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Database not connected');
+  if (input.amount !== undefined && input.amount < 0) throw new Error('Amount cannot be negative.');
+  const patch: Record<string, unknown> = {};
+  if (input.due_date !== undefined) patch.due_date = input.due_date || null;
+  if (input.amount !== undefined) patch.amount = input.amount;
+  if (Object.keys(patch).length === 0) return;
+  const { error } = await supabase.from('payments').update(patch).eq('id', paymentId);
+  if (error) throw error;
 }

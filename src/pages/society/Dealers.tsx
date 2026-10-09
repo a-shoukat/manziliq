@@ -3,6 +3,7 @@ import {
   createLot,
   decideDealerRequest,
   fetchDealerRequests,
+  fetchDealerStats,
   fetchLots,
   fetchPlots,
   fetchSocietyDealers,
@@ -16,6 +17,7 @@ export default function Dealers({ onNavigate }: { onNavigate: (p: string) => voi
   const [requests, setRequests] = useState<Awaited<ReturnType<typeof fetchDealerRequests>>>([]);
   const [lots, setLots] = useState<Lot[]>([]);
   const [dealers, setDealers] = useState<Awaited<ReturnType<typeof fetchSocietyDealers>>>([]);
+  const [stats, setStats] = useState<Record<string, { bookings: number; converted: number; revenue: number }>>({});
   const [loading, setLoading] = useState(true);
 
   // lot form
@@ -29,14 +31,16 @@ export default function Dealers({ onNavigate }: { onNavigate: (p: string) => voi
 
   const load = async (sid: string) => {
     setLoading(true);
-    const [r, l, d] = await Promise.all([
+    const [r, l, d, s] = await Promise.all([
       fetchDealerRequests(sid),
       fetchLots(sid),
       fetchSocietyDealers(sid),
+      fetchDealerStats(sid),
     ]);
     setRequests(r);
     setLots(l);
     setDealers(d);
+    setStats(s);
     setLoading(false);
   };
 
@@ -175,16 +179,22 @@ export default function Dealers({ onNavigate }: { onNavigate: (p: string) => voi
           <h3 style={{ marginTop: 24 }}>Dealer performance</h3>
           <div className="table-wrap">
             <table className="data-table">
-              <thead><tr><th>Dealer</th><th>Firm</th><th>Active lots</th><th>Plots assigned</th></tr></thead>
+              <thead><tr><th>Dealer</th><th>Firm</th><th>Active lots</th><th>Plots assigned</th><th>Bookings</th><th>Converted</th><th>Conv. rate</th><th>Revenue (PKR)</th></tr></thead>
               <tbody>
                 {dealers.map((d) => {
                   const dl = lots.filter((l) => l.dealer_id === d.id && l.status === 'active');
+                  const st = stats[d.id] ?? { bookings: 0, converted: 0, revenue: 0 };
+                  const rate = st.bookings > 0 ? Math.round((st.converted / st.bookings) * 100) : 0;
                   return (
                     <tr key={d.id}>
                       <td>{d.email}</td>
                       <td>{d.firm}</td>
                       <td>{dl.length}</td>
                       <td>{dl.reduce((s, l) => s + (l.plot_count ?? 0), 0)}</td>
+                      <td>{st.bookings}</td>
+                      <td>{st.converted}</td>
+                      <td>{rate}%</td>
+                      <td>{st.revenue.toLocaleString()}</td>
                     </tr>
                   );
                 })}
