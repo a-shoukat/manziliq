@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { fetchProperties } from '../lib/properties';
 import { useCompare } from '../lib/compare';
 import type { Property } from '../types';
@@ -6,7 +6,9 @@ import PropertyCard from '../components/PropertyCard';
 
 type SortKey = 'newest' | 'price-asc' | 'price-desc' | 'size-desc';
 
-const SKELETONS = 8;
+interface Props {
+  onNavigate: (p: string, arg?: string) => void;
+}
 
 function SkeletonCard() {
   return (
@@ -21,43 +23,41 @@ function SkeletonCard() {
   );
 }
 
-interface Props {
-  onNavigate: (p: string, arg?: string) => void;
-}
-
 export default function Marketplace({ onNavigate }: Props) {
   const [all, setAll] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
   const [q, setQ] = useState('');
-  const [city, setCity] = useState('');
-  const [category, setCategory] = useState('');
-  const [purpose, setPurpose] = useState('');
+  const [cities, setCities] = useState<string[]>([]);
+  const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [status, setStatus] = useState('');
+  const [cats, setCats] = useState<string[]>([]);
+  const [purposes, setPurposes] = useState<string[]>([]);
   const [sort, setSort] = useState<SortKey>('newest');
+  const [favs, setFavs] = useState<Set<string>>(new Set());
+
   const { items: compareItems, toggle, has, clear } = useCompare();
 
-  const load = () => {
-    setLoading(true);
-    setLoadError(null);
+  useEffect(() => {
     fetchProperties()
       .then(({ list }) => setAll(list))
-      .catch((e) => setLoadError(e instanceof Error ? e.message : 'Could not load properties'))
+      .catch((e) => setErr(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(load, []);
+  const allCities = useMemo(() => [...new Set(all.map((p) => p.city))].sort(), [all]);
 
-  const cities = [...new Set(all.map((p) => p.city))].sort();
+  const toggleArr = (arr: string[], v: string, set: (a: string[]) => void) =>
+    set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
   const filtered = all
     .filter((p) => {
       if (q && !`${p.title} ${p.area ?? ''} ${p.society_name ?? ''}`.toLowerCase().includes(q.toLowerCase())) return false;
-      if (city && p.city !== city) return false;
-      if (category && p.category !== category) return false;
-      if (purpose && p.purpose !== purpose) return false;
-      if (status && p.status !== status) return false;
+      if (cities.length && !cities.includes(p.city)) return false;
+      if (cats.length && !cats.includes(p.category)) return false;
+      if (purposes.length && !purposes.includes(p.purpose)) return false;
+      if (minPrice && p.price < parseFloat(minPrice)) return false;
       if (maxPrice && p.price > parseFloat(maxPrice)) return false;
       return true;
     })
@@ -65,111 +65,139 @@ export default function Marketplace({ onNavigate }: Props) {
       if (sort === 'price-asc') return a.price - b.price;
       if (sort === 'price-desc') return b.price - a.price;
       if (sort === 'size-desc') return b.plot_size_marla - a.plot_size_marla;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return +new Date(b.created_at) - +new Date(a.created_at);
     });
 
-  const hasFilters = q || city || category || purpose || status || maxPrice;
-
-  const resetFilters = () => {
-    setQ(''); setCity(''); setCategory(''); setPurpose(''); setStatus(''); setMaxPrice('');
+  const clearAll = () => {
+    setQ(''); setCities([]); setCats([]); setPurposes([]); setMinPrice(''); setMaxPrice('');
   };
+  const activeCount = cities.length + cats.length + purposes.length + (minPrice || maxPrice ? 1 : 0) + (q ? 1 : 0);
+
+  const toggleFav = (p: Property) =>
+    setFavs((s) => { const n = new Set(s); n.has(p.id) ? n.delete(p.id) : n.add(p.id); return n; });
 
   return (
-    <div className="container">
-      <div className="topbar">
-        <div>
-          <h1>Find your next property</h1>
-          <p className="sub muted">
-            {loading ? 'Searching listings…' : `${filtered.length} ${filtered.length === 1 ? 'property' : 'properties'} available`}
-          </p>
-        </div>
-      </div>
-
-      {/* Search + filters */}
-      <div className="filters" role="search" aria-label="Property filters">
-        <input
-          className="filter-input"
-          placeholder="Search area, society, or keyword…"
-          aria-label="Search properties"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-        <select value={city} onChange={(e) => setCity(e.target.value)} aria-label="Filter by city">
-          <option value="">All cities</option>
-          {cities.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Filter by category">
-          <option value="">All types</option>
-          <option value="residential">Residential</option>
-          <option value="commercial">Commercial</option>
-        </select>
-        <select value={purpose} onChange={(e) => setPurpose(e.target.value)} aria-label="Filter by purpose">
-          <option value="">Buy or rent</option>
-          <option value="sale">For sale</option>
-          <option value="rent">For rent</option>
-        </select>
-        <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status">
-          <option value="">Any status</option>
-          <option value="available">Available</option>
-          <option value="reserved">Reserved</option>
-          <option value="sold">Sold</option>
-        </select>
-        <input
-          className="filter-input"
-          type="number"
-          min={0}
-          placeholder="Max budget (PKR)"
-          aria-label="Maximum price in PKR"
-          value={maxPrice}
-          onChange={(e) => setMaxPrice(e.target.value)}
-        />
-        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Sort properties">
-          <option value="newest">Newest first</option>
-          <option value="price-asc">Price: low to high</option>
-          <option value="price-desc">Price: high to low</option>
-          <option value="size-desc">Largest plots first</option>
-        </select>
-      </div>
-
-      {compareItems.length > 0 && (
-        <div className="compare-bar" role="status">
-          <span>{compareItems.length} of 3 selected for comparison</span>
-          <div className="link-row" style={{ margin: 0 }}>
-            <button className="btn small" onClick={() => onNavigate('compare')}>Compare now</button>
-            <button className="btn ghost small" onClick={clear}>Clear</button>
+    <div className="wrap" style={{ paddingTop: 24, paddingBottom: 56 }}>
+      <div className="mp-layout">
+        {/* SIDEBAR */}
+        <aside className="mp-sidebar" aria-label="Filters">
+          <div className="filter-card">
+            <h4>🔍 Search <button aria-label="Clear search" onClick={() => setQ('')}>✕</button></h4>
+            <input placeholder="Area, society, keyword…" aria-label="Search properties"
+              value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-        </div>
-      )}
 
-      {loading ? (
-        <div className="prop-grid" aria-label="Loading properties">
-          {Array.from({ length: SKELETONS }).map((_, i) => <SkeletonCard key={i} />)}
+          <div className="filter-card">
+            <h4>📍 Location</h4>
+            {allCities.map((c) => (
+              <label key={c} className="check-row">
+                <input type="checkbox" checked={cities.includes(c)}
+                  onChange={() => toggleArr(cities, c, setCities)} />
+                {c}
+              </label>
+            ))}
+          </div>
+
+          <div className="filter-card">
+            <h4>💰 Price range (PKR)</h4>
+            <div className="price-inputs">
+              <input type="number" placeholder="Min" aria-label="Minimum price"
+                value={minPrice} onChange={(e) => setMinPrice(e.target.value)} />
+              <span>–</span>
+              <input type="number" placeholder="Max" aria-label="Maximum price"
+                value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="filter-card">
+            <h4>🏠 Property type</h4>
+            {[['residential', 'Residential'], ['commercial', 'Commercial']].map(([v, l]) => (
+              <label key={v} className="check-row">
+                <input type="checkbox" checked={cats.includes(v)}
+                  onChange={() => toggleArr(cats, v, setCats)} />
+                {l}
+              </label>
+            ))}
+          </div>
+
+          <div className="filter-card">
+            <h4>🎯 Purpose</h4>
+            {[['sale', 'For sale'], ['rent', 'For rent']].map(([v, l]) => (
+              <label key={v} className="check-row">
+                <input type="checkbox" checked={purposes.includes(v)}
+                  onChange={() => toggleArr(purposes, v, setPurposes)} />
+                {l}
+              </label>
+            ))}
+          </div>
+
+          {activeCount > 0 && (
+            <button className="btn outline block" onClick={clearAll}>
+              Clear all ({activeCount})
+            </button>
+          )}
+        </aside>
+
+        {/* MAIN */}
+        <div className="mp-main">
+          <div className="mp-head">
+            <div>
+              <h1 style={{ margin: 0 }}>Marketplace</h1>
+              <p className="mp-count">
+                <strong>{filtered.length}</strong> {filtered.length === 1 ? 'property' : 'properties'} found
+              </p>
+            </div>
+            <select className="sortsel" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Sort by">
+              <option value="newest">Newest first</option>
+              <option value="price-asc">Price: low → high</option>
+              <option value="price-desc">Price: high → low</option>
+              <option value="size-desc">Largest first</option>
+            </select>
+          </div>
+
+          {compareItems.length > 0 && (
+            <div className="alert info" role="status" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <span>{compareItems.length}/3 selected for comparison</span>
+              <span>
+                <button className="btn small" onClick={() => onNavigate('compare')}>Compare now</button>{' '}
+                <button className="btn ghost small" onClick={clear}>Clear</button>
+              </span>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="prop-grid">{Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}</div>
+          ) : err ? (
+            <div className="empty">
+              <div className="ei">⚠️</div>
+              <h3>Couldn't load listings</h3>
+              <p>{err}</p>
+              <button className="btn" onClick={() => window.location.reload()}>Try again</button>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="empty">
+              <div className="ei">🏘️</div>
+              <h3>No properties found</h3>
+              <p>Try widening your price range or clearing some filters.</p>
+              <button className="btn outline" onClick={clearAll}>Clear all filters</button>
+            </div>
+          ) : (
+            <div className="prop-grid">
+              {filtered.map((p) => (
+                <PropertyCard
+                  key={p.id}
+                  property={p}
+                  onOpen={(id) => onNavigate('property', id)}
+                  inCompare={has(p.id)}
+                  onToggleCompare={toggle}
+                  onToggleFav={toggleFav}
+                  isFav={favs.has(p.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      ) : loadError ? (
-        <div className="empty">
-          <div className="empty-icon" aria-hidden="true">⚠️</div>
-          <h3>Couldn't load listings</h3>
-          <p className="muted small">{loadError}. Check your connection and try again.</p>
-          <button className="btn" onClick={load}>Try again</button>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="empty">
-          <div className="empty-icon" aria-hidden="true">🏘️</div>
-          <h3>No properties found</h3>
-          <p className="muted small">
-            {hasFilters
-              ? 'Nothing matches those filters. Try widening your budget or clearing a filter.'
-              : 'No listings yet — check back soon.'}
-          </p>
-          {hasFilters && <button className="btn secondary" onClick={resetFilters}>Clear all filters</button>}
-        </div>
-      ) : (
-        <div className="prop-grid">
-          {filtered.map((p) => (
-            <PropertyCard key={p.id} property={p} onOpen={(id) => onNavigate('property', id)} inCompare={has(p.id)} onToggleCompare={toggle} />
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

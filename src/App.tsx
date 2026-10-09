@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './lib/auth';
 import { CompareProvider } from './lib/compare';
 import { isSupabaseConfigured } from './lib/supabase';
 import Login from './pages/Login';
+import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Marketplace from './pages/Marketplace';
 import PropertyDetail from './pages/PropertyDetail';
@@ -89,7 +90,8 @@ function Shell() {
   }
 
   if (!session) {
-    return <Login onNavigate={navigate} />;
+    if (page === 'login') return <Login onNavigate={navigate} />;
+    return <Landing onNavigate={navigate} />;
   }
 
   return (
@@ -100,6 +102,8 @@ function Shell() {
         <ProtectedRoute onNavigate={navigate}>
           <Dashboard onNavigate={navigate} />
         </ProtectedRoute>
+      ) : page === 'landing' ? (
+        <Landing onNavigate={navigate} />
       ) : page === 'marketplace' ? (
         <ProtectedRoute onNavigate={navigate}>
           <Marketplace onNavigate={navigate} />

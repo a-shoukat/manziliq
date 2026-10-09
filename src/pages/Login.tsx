@@ -11,11 +11,11 @@ type Step = 'signin' | 'choose-role' | 'create-account' | 'register-details';
 
 const ROLES: UserRole[] = ['buyer', 'dealer', 'society_admin'];
 
-const ROLE_BLURBS: Record<UserRole, string> = {
-  buyer: 'Browse verified listings, book plots, and track payments.',
-  dealer: 'List properties for clients and manage bookings.',
-  society_admin: 'Manage your society: blocks, bookings, and transfers.',
-  super_admin: 'Full platform administration and oversight.',
+const ROLE_META: Record<UserRole, { icon: string; blurb: string }> = {
+  buyer: { icon: '🏠', blurb: 'Browse & book' },
+  dealer: { icon: '🤝', blurb: 'Sell for clients' },
+  society_admin: { icon: '🏘️', blurb: 'Manage society' },
+  super_admin: { icon: '⚙️', blurb: 'Platform admin' },
 };
 
 export default function Login({ onNavigate }: { onNavigate: (p: string) => void }) {
@@ -23,21 +23,18 @@ export default function Login({ onNavigate }: { onNavigate: (p: string) => void 
   const [role, setRole] = useState<UserRole>('buyer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   if (!isSupabaseConfigured()) {
     return (
-      <div className="page">
+      <div className="page-center">
         <div className="card narrow">
           <h1>ManzilIQ</h1>
-          <p className="muted">Database not connected</p>
-          <div className="notice" role="alert">
-            Copy <code>.env.example</code> to <code>.env</code>, add your{' '}
-            <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>,
-            then run the SQL in <code>supabase/schema.sql</code>.
-          </div>
+          <p>Database not connected</p>
+          <div className="alert error">Copy <code>.env.example</code> to <code>.env</code> and add your Supabase keys.</div>
         </div>
       </div>
     );
@@ -100,142 +97,123 @@ export default function Login({ onNavigate }: { onNavigate: (p: string) => void 
     setStep('signin');
   };
 
-  const resetToSignin = () => { setStep('signin'); setError(null); setNotice(null); };
-
   return (
-    <div className="page">
-      <div className="card narrow">
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <div className="nav-brand" style={{ justifyContent: 'center', cursor: 'default' }}>
-            <span className="mark" aria-hidden="true">M</span>
-            ManzilIQ
-          </div>
+    <div className="login-split">
+      {/* Left — brand visual (like reference) */}
+      <div className="login-visual" aria-hidden="true">
+        <div className="lv-bg">🏡</div>
+        <div className="lv-brand">
+          <img src="/manziliq-logo.png" alt="" style={{ height: 40, filter: 'brightness(0) invert(1)' }} />
         </div>
+        <div>
+          <h2>Find your sweet home</h2>
+          <p>Verified societies, transparent prices, and plots you can book in just a few clicks — all across Pakistan.</p>
+          <div className="lv-dots"><i className="on" /><i /><i /></div>
+        </div>
+      </div>
 
-        {step === 'signin' && (
-          <>
-            <h1 style={{ textAlign: 'center' }}>Welcome back</h1>
-            <p className="muted" style={{ textAlign: 'center' }}>Sign in to manage your properties and bookings</p>
-            <form onSubmit={handleSignin} noValidate={false}>
-              <label className="field" htmlFor="login-email">
-                <span className="field-label">Email address <span className="req" aria-hidden="true">*</span></span>
-                <input
-                  id="login-email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                />
-              </label>
-              <label className="field" htmlFor="login-password">
-                <span className="field-label">Password <span className="req" aria-hidden="true">*</span></span>
-                <input
-                  id="login-password"
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Your password"
-                />
-              </label>
-              {error && <div className="error" role="alert">{error}</div>}
-              {notice && <div className="success-note" role="status">{notice}</div>}
-              <button className="btn block large" disabled={loading}>
-                {loading ? 'Signing you in…' : 'Sign in'}
-              </button>
-            </form>
-            <p className="small muted" style={{ textAlign: 'center', marginTop: 16 }}>
-              New to ManzilIQ?{' '}
-              <button className="link inline" onClick={() => { setStep('choose-role'); setError(null); setNotice(null); }}>
-                Create an account
-              </button>
-            </p>
-          </>
-        )}
+      {/* Right — form */}
+      <div className="login-form-wrap">
+        <div className="login-form">
+          <div className="login-top">
+            <button className="btn dark pill small" onClick={() => onNavigate('landing')}>← Back to home</button>
+          </div>
 
-        {step === 'choose-role' && (
-          <>
-            <h1 style={{ textAlign: 'center' }}>Join ManzilIQ</h1>
-            <p className="muted" style={{ textAlign: 'center' }}>What best describes you?</p>
-            <div className="role-grid" role="radiogroup" aria-label="Account type">
-              {ROLES.map((r) => (
-                <button
-                  key={r}
-                  role="radio"
-                  aria-checked={role === r}
-                  className={`role-card${role === r ? ' selected' : ''}`}
-                  onClick={() => setRole(r)}
-                >
-                  <strong>{ROLE_LABELS[r]}</strong>
-                  <span className="caption muted" style={{ display: 'block', marginTop: 4 }}>{ROLE_BLURBS[r]}</span>
+          {step === 'signin' && (
+            <>
+              <h1>Welcome back to ManzilIQ!</h1>
+              <p className="sub">Sign in to your account</p>
+              <form onSubmit={handleSignin}>
+                <label className="field" htmlFor="login-email">
+                  <span className="flabel">Your Email</span>
+                  <input id="login-email" type="email" required autoComplete="email"
+                    value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+                </label>
+                <label className="field" htmlFor="login-password">
+                  <span className="flabel">Password</span>
+                  <div style={{ position: 'relative' }}>
+                    <input id="login-password" type={showPw ? 'text' : 'password'} required autoComplete="current-password"
+                      value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••"
+                      style={{ paddingRight: 44 }} />
+                    <button type="button" aria-label={showPw ? 'Hide password' : 'Show password'}
+                      onClick={() => setShowPw(s => !s)}
+                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}>
+                      {showPw ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                </label>
+                {error && <div className="alert error" role="alert">{error}</div>}
+                {notice && <div className="alert ok" role="status">{notice}</div>}
+                <button className="btn dark block pill" style={{ minHeight: 50 }} disabled={loading}>
+                  {loading ? 'Signing you in…' : 'Login'}
                 </button>
-              ))}
-            </div>
-            <button className="btn block" onClick={() => setStep('create-account')}>
-              Continue as {ROLE_LABELS[role]}
-            </button>
-            <p className="small muted" style={{ textAlign: 'center', marginTop: 16 }}>
-              <button className="link inline" onClick={resetToSignin}>Back to sign in</button>
-            </p>
-          </>
-        )}
+              </form>
+              <p className="login-alt">
+                Don’t have an account?{' '}
+                <button className="link" onClick={() => { setStep('choose-role'); setError(null); }}>Register</button>
+              </p>
+            </>
+          )}
 
-        {step === 'create-account' && (
-          <>
-            <h1 style={{ textAlign: 'center' }}>Create your account</h1>
-            <p className="muted" style={{ textAlign: 'center' }}>
-              Registering as <strong className="secondary-text">{ROLE_LABELS[role]}</strong>
-            </p>
-            <form onSubmit={handleCreateAccount}>
-              <label className="field" htmlFor="reg-email">
-                <span className="field-label">Email address <span className="req" aria-hidden="true">*</span></span>
-                <input
-                  id="reg-email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                />
-              </label>
-              <label className="field" htmlFor="reg-password">
-                <span className="field-label">Password <span className="req" aria-hidden="true">*</span></span>
-                <input
-                  id="reg-password"
-                  type="password"
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 8 characters"
-                />
-                <span className="field-hint">Use 8+ characters with a mix of letters and numbers.</span>
-              </label>
-              {error && <div className="error" role="alert">{error}</div>}
-              <button className="btn block large" disabled={loading}>
-                {loading ? 'Creating your account…' : 'Create account'}
+          {step === 'choose-role' && (
+            <>
+              <h1>Join ManzilIQ</h1>
+              <p className="sub">What best describes you?</p>
+              <div className="role-pick" role="group" aria-label="Account type">
+                {ROLES.map((r) => (
+                  <button key={r} aria-pressed={role === r} onClick={() => setRole(r)}>
+                    <span style={{ fontSize: 22 }}>{ROLE_META[r].icon}</span><br />
+                    {ROLE_LABELS[r]}
+                    <small>{ROLE_META[r].blurb}</small>
+                  </button>
+                ))}
+              </div>
+              <button className="btn dark block pill" style={{ minHeight: 50 }} onClick={() => setStep('create-account')}>
+                Continue →
               </button>
-            </form>
-            <p className="small muted" style={{ textAlign: 'center', marginTop: 16 }}>
-              <button className="link inline" onClick={() => setStep('choose-role')}>← Choose a different account type</button>
-            </p>
-          </>
-        )}
+              <p className="login-alt">
+                <button className="link" onClick={() => setStep('signin')}>← Back to sign in</button>
+              </p>
+            </>
+          )}
 
-        {step === 'register-details' && (
-          <>
-            <h1 style={{ textAlign: 'center' }}>Almost done</h1>
-            <p className="muted" style={{ textAlign: 'center' }}>Complete your {ROLE_LABELS[role]} profile</p>
-            {role === 'society_admin' && <SocietyRegistrationForm onDone={detailsDone} />}
-            {role === 'dealer' && <DealerRegistrationForm onDone={detailsDone} />}
-            {role === 'buyer' && <CustomerRegistrationForm onDone={detailsDone} />}
-          </>
-        )}
+          {step === 'create-account' && (
+            <>
+              <h1>Create account</h1>
+              <p className="sub">Registering as <strong style={{ color: 'var(--ink)' }}>{ROLE_LABELS[role]}</strong></p>
+              <form onSubmit={handleCreateAccount}>
+                <label className="field" htmlFor="reg-email">
+                  <span className="flabel">Your Email</span>
+                  <input id="reg-email" type="email" required autoComplete="email"
+                    value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+                </label>
+                <label className="field" htmlFor="reg-password">
+                  <span className="flabel">Password</span>
+                  <input id="reg-password" type="password" required minLength={8} autoComplete="new-password"
+                    value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" />
+                  <span className="fhint">Use 8+ characters with letters and numbers.</span>
+                </label>
+                {error && <div className="alert error" role="alert">{error}</div>}
+                <button className="btn dark block pill" style={{ minHeight: 50 }} disabled={loading}>
+                  {loading ? 'Creating…' : 'Create account'}
+                </button>
+              </form>
+              <p className="login-alt">
+                <button className="link" onClick={() => setStep('choose-role')}>← Change account type</button>
+              </p>
+            </>
+          )}
+
+          {step === 'register-details' && (
+            <>
+              <h1>Almost done 🎉</h1>
+              <p className="sub">Complete your {ROLE_LABELS[role]} profile</p>
+              {role === 'society_admin' && <SocietyRegistrationForm onDone={detailsDone} />}
+              {role === 'dealer' && <DealerRegistrationForm onDone={detailsDone} />}
+              {role === 'buyer' && <CustomerRegistrationForm onDone={detailsDone} />}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
