@@ -32,6 +32,7 @@ Open http://localhost:5173
 | `v11-admin` | 10 · Admin Panel | Dispute management (file, mediate, freeze plot, resolution notice, close/escalate), legal template management (edit/preview/version/publish), platform analytics (societies, dealers, customers, GMV, plots, growth) |
 | `v12-legal` | 11 · Legal Documentation | Auto-generated documents (allotment on approval, token receipt, installment receipts, transfer deed + NOC on completion, cancellation letter); auto-fill from DB, society letterhead, watermark, signature placeholders, version history, expiry tracking; customer locker, society bulk print, dealer copies, admin audit trail |
 | `v13-analytics` | 12 · Analytics & Reporting | Society sales analytics (plots/bookings by status, revenue trend, block sell-through, payments CSV export); dealer performance (lots, leads by temperature, pipeline distribution, conversion rate); AI market trends (PKR/marla by city/category, trend direction); customer activity timeline |
+| `v14-ai-assistance` | 13 · AI Assistance | Floating AI chat assistant on every page (Gemini when API key present, offline brain otherwise): price questions, live listing search, booking guide, marla conversions, quick prompts + navigation actions; upgraded price predictor — hedonic regression trained on local plots+listings (location/city/society, size, category, bedrooms) with R²-based confidence score |
 | `v4-society` | 3 · Society Management | _planned_ |
 | `v5-dealer` | 4 · Dealer Management | _planned_ |
 | `v6-maps` | 5 · Interactive Maps | _planned_ |
@@ -42,4 +43,4 @@ Open http://localhost:5173
 | `v11-admin` | 10 · Admin Panel | Dispute management, legal templates, platform analytics |
 | `v12-legal` | 11 · Legal Documentation | Auto-generated documents + locker + audit trail |
 | `v13-analytics` | 12 · Analytics & Reporting | Society/dealer/market/customer analytics + CSV reports |
-| `v14-ai-assistance` | 13 · AI Assistance | _planned_ |
+| `v14-ai-assistance` | 13 · AI Assistance | Floating AI chat assistant + regression-based price predictor |

@@ -62,6 +62,7 @@ Browser mein kholo: **http://localhost:5173**
 | v11-admin | `v11-admin` | + Admin Panel: disputes, legal templates, platform analytics |
 | v12-legal | `v12-legal` | + Legal Documentation: auto-generated documents, locker, audit |
 | v13-analytics | `v13-analytics` | + Analytics & Reporting: dashboards, trends, CSV reports |
+| v14-ai-assistance | `v14-ai-assistance` | + AI Assistance: chat assistant + regression price predictor |
 
 ## Accounts kaise banayein (v2-auth)
 

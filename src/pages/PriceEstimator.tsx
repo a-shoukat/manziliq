@@ -69,6 +69,8 @@ export default function PriceEstimator({ onNavigate }: { onNavigate: (p: string)
             <div className="detail-grid">
               <div className="detail-item"><span className="detail-key">Low</span><span>{formatPrice(result.low)}</span></div>
               <div className="detail-item"><span className="detail-key">High</span><span>{formatPrice(result.high)}</span></div>
+              <div className="detail-item"><span className="detail-key">Confidence</span><span>{result.confidence}%</span></div>
+              <div className="detail-item"><span className="detail-key">Data points</span><span>{result.samples}</span></div>
             </div>
             <p className="muted small" style={{ marginTop: 12 }}>{result.reasoning}</p>
           </div>

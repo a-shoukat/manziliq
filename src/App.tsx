@@ -36,6 +36,7 @@ import DealerAnalytics from './pages/analytics/DealerAnalytics';
 import MarketTrends from './pages/analytics/MarketTrends';
 import CustomerActivity from './pages/analytics/CustomerActivity';
 import Navbar from './components/Navbar';
+import AiAssistant from './components/AiAssistant';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
 
@@ -71,6 +72,7 @@ function Shell() {
   return (
     <>
       <Navbar page={page} onNavigate={navigate} />
+      <AiAssistant onNavigate={navigate} />
       {page === 'dashboard' || page === 'login' ? (
         <ProtectedRoute onNavigate={navigate}>
           <Dashboard onNavigate={navigate} />
