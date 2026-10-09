@@ -33,6 +33,7 @@ import {
   MARLA_PRESETS 
 } from '../../components/marketplace/MarketplaceFilterSidebar';
 import { PropertyCard } from '../../components/marketplace/PropertyCard';
+import { MediaPermissionButton } from '../../components/MediaPermissionButton';
 
 interface PropertyMarketplaceViewProps {
   properties?: Property[];
@@ -117,7 +118,54 @@ export const PropertyMarketplaceView: React.FC<PropertyMarketplaceViewProps> = (
 
   const handleResetFilters = () => {
     setFilters(INITIAL_FILTERS);
+    setActiveVoiceTranscript(null);
     setCurrentPage(1);
+  };
+
+  // Voice search query handler that maps speech transcription to marketplace criteria
+  const [activeVoiceTranscript, setActiveVoiceTranscript] = useState<string | null>(null);
+
+  const handleApplyVoiceQuery = (transcript: string, extracted?: any) => {
+    if (!transcript) return;
+    setActiveVoiceTranscript(transcript);
+    
+    // 1. Update text search query
+    handleFilterChange('searchQuery', transcript);
+
+    // 2. Automatically apply matching marketplace filters if extracted
+    if (extracted) {
+      if (extracted.propertyType) {
+        const typeMap: Record<string, string> = {
+          plot: 'Plot',
+          house: 'House',
+          commercial: 'Commercial',
+          apartment: 'Apartment'
+        };
+        const mappedType = typeMap[extracted.propertyType] || extracted.propertyType;
+        handleFilterChange('selectedType', mappedType);
+      }
+
+      if (extracted.societyId) {
+        handleFilterChange('selectedSociety', extracted.societyId);
+      } else if (extracted.societyName && societies.length > 0) {
+        const found = societies.find(s => s.name.toLowerCase().includes(extracted.societyName.toLowerCase()));
+        if (found) {
+          handleFilterChange('selectedSociety', found.id);
+        }
+      }
+
+      if (extracted.maxPrice && typeof extracted.maxPrice === 'number') {
+        handleFilterChange('maxPrice', extracted.maxPrice);
+      }
+
+      if (extracted.sizeMarla && typeof extracted.sizeMarla === 'number') {
+        handleFilterChange('selectedMarlaPill', String(extracted.sizeMarla));
+      }
+    }
+
+    if (onToast) {
+      onToast(`🎙️ Voice search applied: "${transcript}"`);
+    }
   };
 
   const handleSelectProp = (id: string) => {
@@ -363,6 +411,15 @@ export const PropertyMarketplaceView: React.FC<PropertyMarketplaceViewProps> = (
         {/* Top Action Bar */}
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
           
+          {/* Voice Search MediaPermissionButton in Marketplace Search Header */}
+          <div className="shrink-0">
+            <MediaPermissionButton
+              kind="microphone"
+              label="Voice Search"
+              onAudioTranscript={handleApplyVoiceQuery}
+            />
+          </div>
+
           {/* Comparison Tray Link if properties selected */}
           {activeCompareIds.length > 0 && (
             <button
@@ -469,27 +526,73 @@ export const PropertyMarketplaceView: React.FC<PropertyMarketplaceViewProps> = (
         {/* Main Listings Column */}
         <div className="flex-1 min-w-0 space-y-4">
           
-          {/* Quick Keyword Search Bar */}
-          <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex items-center gap-3">
-            <Search className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
-            <input
-              id="input-marketplace-search"
-              type="text"
-              value={filters.searchQuery}
-              onChange={(e) => handleFilterChange('searchQuery', e.target.value)}
-              placeholder="Search by keywords, sector, block, plot #, society, road width..."
-              className="w-full text-xs bg-transparent outline-none text-slate-900 placeholder:text-slate-400"
-            />
-            {filters.searchQuery && (
+          {/* Quick Keyword Search Bar & Voice-Enabled Search */}
+          <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs space-y-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              <div className="flex-1 flex items-center gap-2.5 bg-slate-50 sm:bg-transparent px-3 py-2 sm:p-0 rounded-xl sm:rounded-none">
+                <Search className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
+                <input
+                  id="input-marketplace-search"
+                  type="text"
+                  value={filters.searchQuery}
+                  onChange={(e) => handleFilterChange('searchQuery', e.target.value)}
+                  placeholder="Search by keywords, sector, block, plot #, society, road width..."
+                  className="w-full text-xs bg-transparent outline-none text-slate-900 placeholder:text-slate-400"
+                />
+                {filters.searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => handleFilterChange('searchQuery', '')}
+                    className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer shrink-0"
+                    title="Clear search"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* MediaPermissionButton for Real-Time Voice Search */}
+              <div className="shrink-0 flex items-center justify-end">
+                <MediaPermissionButton
+                  kind="microphone"
+                  label="Voice Search"
+                  compact
+                  onAudioTranscript={handleApplyVoiceQuery}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Active Voice Search Query Pill & Indicator */}
+          {activeVoiceTranscript && (
+            <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 text-white rounded-2xl border border-emerald-500/30 text-xs shadow-md animate-in fade-in duration-200">
+              <div className="flex items-center gap-2.5">
+                <div className="relative flex items-center justify-center">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping absolute"></span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Whisper Voice Search Active:</span>
+                    <span className="font-bold text-white italic">"{activeVoiceTranscript}"</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">Transcribed & automatically applied to marketplace criteria</span>
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={() => handleFilterChange('searchQuery', '')}
-                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                onClick={() => {
+                  setActiveVoiceTranscript(null);
+                  handleFilterChange('searchQuery', '');
+                }}
+                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-[11px] font-bold transition flex items-center gap-1 cursor-pointer border border-slate-700 shrink-0 ml-2"
+                title="Clear voice query"
               >
-                <X className="w-4 h-4" />
+                <span>Clear Voice Filter</span>
+                <X className="w-3 h-3" />
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Active Filter Chips Bar */}
           {activeFiltersCount > 0 && (

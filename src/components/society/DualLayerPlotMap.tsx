@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as d3 from 'd3';
 import { Plot, Society, SvgZone, User } from '../../types';
+import { GoogleMapView, MapMarkerData } from '../maps/GoogleMapView';
+import { 
+  SOCIETY_COORDINATES_MAP, 
+  DEFAULT_PAKISTAN_COORDINATES, 
+  LatLng 
+} from '../../services/googleMapsService';
 import { 
   MapPin, 
   Layers, 
@@ -121,6 +127,63 @@ export const DualLayerPlotMap: React.FC<DualLayerPlotMapProps> = ({
     ro.observe(containerRef.current);
     return () => ro.disconnect();
   }, []);
+
+  // Society GPS Coordinates and Boundary
+  const societyCoords: LatLng = useMemo(() => {
+    if (society.latitude && society.longitude) {
+      return { lat: society.latitude, lng: society.longitude };
+    }
+    if (society.coordinates?.lat && society.coordinates?.lng) {
+      return { lat: society.coordinates.lat, lng: society.coordinates.lng };
+    }
+    if (SOCIETY_COORDINATES_MAP[society.id]) {
+      return SOCIETY_COORDINATES_MAP[society.id].center;
+    }
+    return DEFAULT_PAKISTAN_COORDINATES;
+  }, [society]);
+
+  const boundaryPolygon: LatLng[] = useMemo(() => {
+    if (society.boundaryCoordinates && society.boundaryCoordinates.length > 2) {
+      return society.boundaryCoordinates;
+    }
+    if (SOCIETY_COORDINATES_MAP[society.id]?.boundary) {
+      return SOCIETY_COORDINATES_MAP[society.id].boundary;
+    }
+    return [];
+  }, [society]);
+
+  // Google Maps Markers for Plots & Society Center
+  const googleMapMarkers: MapMarkerData[] = useMemo(() => {
+    const list: MapMarkerData[] = [
+      {
+        id: `soc-center-${society.id}`,
+        position: societyCoords,
+        title: society.name,
+        subtitle: `LDA/TMA Approved Project • ${society.location}`,
+        category: 'society',
+        isPrimary: true
+      }
+    ];
+
+    relevantPlots.slice(0, 15).forEach((p) => {
+      const latOffset = ((p.coordinates.y - 3) * 0.0008);
+      const lngOffset = ((p.coordinates.x - 3) * 0.0010);
+      const plotPos: LatLng = (p.latitude && p.longitude)
+        ? { lat: p.latitude, lng: p.longitude }
+        : { lat: societyCoords.lat + latOffset, lng: societyCoords.lng + lngOffset };
+
+      list.push({
+        id: p.id,
+        position: plotPos,
+        title: `Plot #${p.plotNumber} (${p.sector})`,
+        subtitle: `${p.sizeMarla} Marla • ${p.block} Block`,
+        price: `PKR ${p.pricePKR.toLocaleString('en-PK')}`,
+        category: p.category === 'commercial' ? 'market' : 'property'
+      });
+    });
+
+    return list;
+  }, [society, societyCoords, relevantPlots]);
 
   // Status counts for society dashboard
   const statusCounts = useMemo(() => {
@@ -695,26 +758,21 @@ export const DualLayerPlotMap: React.FC<DualLayerPlotMapProps> = ({
           
           {/* LAYER 1: GOOGLE MAPS */}
           {activeLayer === 'google_maps' && (
-            <div className="w-full h-full min-h-[520px] relative bg-slate-100">
-              <iframe
-                title={`${society.name} Real-World Coordinates`}
-                src={society.mapEmbedUrl || `https://maps.google.com/maps?q=${encodeURIComponent(society.name + ' ' + society.location + ' Pakistan')}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-                className="w-full h-full min-h-[520px] border-0"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
+            <div className="w-full h-full min-h-[520px] relative bg-slate-100 p-2 sm:p-4">
+              <GoogleMapView
+                center={societyCoords}
+                zoom={16}
+                boundaryPolygon={boundaryPolygon}
+                markers={googleMapMarkers}
+                height="520px"
+                mapTitle={`${society.name} - Demarcated Masterplan Boundary`}
+                showDirectionsButton={true}
+                showMapTypeToggle={true}
+                onMarkerClick={(m) => {
+                  const foundPlot = relevantPlots.find(p => p.id === m.id);
+                  if (foundPlot) setActivePlot(foundPlot);
+                }}
               />
-              <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm p-3.5 rounded-2xl shadow-md border border-slate-200 max-w-xs text-xs space-y-1">
-                <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-emerald-800" />
-                  <span>Geographical Coordinates</span>
-                </div>
-                <p className="text-slate-600 font-mono text-[11px]">
-                  31.5204° N, 74.3587° E (Masterplan Coordinates)
-                </p>
-                <p className="text-[10px] text-slate-500">
-                  Direct connectivity via 100 FT Main Circular Road with LDA/TMA approved bypass.
-                </p>
-              </div>
             </div>
           )}
 
@@ -756,30 +814,34 @@ export const DualLayerPlotMap: React.FC<DualLayerPlotMapProps> = ({
 
           {/* SPLIT VIEW (Layer 1 + Layer 2 Side by Side) */}
           {activeLayer === 'split_view' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 h-full min-h-[520px]">
+            <div className="grid grid-cols-1 md:grid-cols-2 h-full min-h-[520px] gap-2 p-2 sm:p-4 bg-slate-100">
               {/* Left: Google Maps */}
-              <div className="relative border-r border-slate-200 bg-slate-100">
-                <iframe
-                  title={`${society.name} Real-World Coordinates`}
-                  src={society.mapEmbedUrl || `https://maps.google.com/maps?q=${encodeURIComponent(society.name + ' Pakistan')}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
-                  className="w-full h-full min-h-[520px] border-0"
-                  loading="lazy"
+              <div className="relative rounded-2xl overflow-hidden shadow-xs border border-slate-200 min-h-[480px]">
+                <GoogleMapView
+                  center={societyCoords}
+                  zoom={15}
+                  boundaryPolygon={boundaryPolygon}
+                  markers={googleMapMarkers}
+                  height="100%"
+                  mapTitle={`${society.name} GPS`}
+                  showDirectionsButton={false}
+                  showMapTypeToggle={false}
                 />
-                <div className="absolute bottom-3 left-3 bg-white/95 px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-800 shadow-sm">
-                  Layer 1: Real-World Location
+                <div className="absolute bottom-3 left-3 bg-white/95 px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-800 shadow-sm border border-slate-200 z-10">
+                  Layer 1: Google Maps Vector
                 </div>
               </div>
 
               {/* Right: SVG Plot Map */}
-              <div ref={containerRef} className="relative overflow-hidden bg-slate-50 p-2">
+              <div ref={containerRef} className="relative overflow-hidden bg-slate-50 p-2 rounded-2xl border border-slate-200 min-h-[480px]">
                 <svg
                   ref={svgRef}
                   width="100%"
                   height={mapDimensions.height}
                   className="w-full h-full select-none cursor-grab active:cursor-grabbing rounded-xl"
                 />
-                <div className="absolute bottom-3 right-3 bg-white/95 px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-800 shadow-sm">
-                  Layer 2: Demarcation Map
+                <div className="absolute bottom-3 right-3 bg-white/95 px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-800 shadow-sm border border-slate-200">
+                  Layer 2: SVG Plot Grid
                 </div>
               </div>
             </div>

@@ -29,7 +29,7 @@ export interface NotificationRecord {
   recipientName?: string;
   recipientEmail?: string;
   recipientPhone?: string;
-  type: 'booking' | 'payment' | 'installment' | 'document' | 'deal_stage' | 'lot_assignment' | 'dispute' | 'verification' | 'system' | 'inquiry';
+  type: 'booking' | 'payment' | 'installment' | 'document' | 'deal_stage' | 'lot_assignment' | 'dispute' | 'verification' | 'system' | 'inquiry' | 'task' | 'site_visit';
   title: string;
   message: string;
   channel: 'in_app' | 'push' | 'sms' | 'email' | 'all';
@@ -774,7 +774,19 @@ export async function runAutomatedScheduledJobs(data?: {
     }
   }
 
-  const summary = `Scheduled run complete: ${remindersSent} 3-day installment reminders dispatched, ${overdueSent} overdue notices sent, ${lotAlertsSent} lot expiry alerts issued. ${duplicatePreventedCount} duplicate notices prevented.`;
+  // 3. Process CRM Tasks for Overdue Status
+  let tasksOverdueSent = 0;
+  const tasks = (data as any)?.tasks || [];
+  if (tasks.length > 0) {
+    const overdueResult = await checkAndDispatchOverdueTasks({
+      tasks,
+      currentDate: data?.currentDate
+    });
+    tasksOverdueSent = overdueResult.alertsDispatchedCount;
+    duplicatePreventedCount += overdueResult.duplicatePreventedCount;
+  }
+
+  const summary = `Scheduled run complete: ${remindersSent} 3-day installment reminders dispatched, ${overdueSent} overdue notices sent, ${lotAlertsSent} lot expiry alerts issued, ${tasksOverdueSent} overdue CRM task alerts triggered. ${duplicatePreventedCount} duplicate notices prevented.`;
   console.log(`[Notification Scheduler] ${summary}`);
 
   return {
@@ -783,5 +795,188 @@ export async function runAutomatedScheduledJobs(data?: {
     lotAlertsSent,
     duplicatePreventedCount,
     runSummary: summary
+  };
+}
+
+/**
+ * Automated CRM Task Overdue Watcher Engine
+ * Scans tasks, checks if past scheduled due date/time without completion,
+ * and triggers automated Email and Push notifications to the assigned dealer.
+ */
+export async function checkAndDispatchOverdueTasks(params: {
+  tasks: any[];
+  dealerId?: string;
+  dealerName?: string;
+  dealerEmail?: string;
+  dealerPhone?: string;
+  channels?: ('in_app' | 'push' | 'sms' | 'email')[];
+  forceTrigger?: boolean;
+  currentDate?: string;
+}): Promise<{
+  success: boolean;
+  tasksOverdueCount: number;
+  alertsDispatchedCount: number;
+  duplicatePreventedCount: number;
+  processedTaskIds: string[];
+  dispatchedAlerts: any[];
+  summary: string;
+}> {
+  const now = params.currentDate ? new Date(params.currentDate) : new Date();
+  const todayStr = now.toISOString().split('T')[0];
+
+  let tasksOverdueCount = 0;
+  let alertsDispatchedCount = 0;
+  let duplicatePreventedCount = 0;
+  const processedTaskIds: string[] = [];
+  const dispatchedAlerts: any[] = [];
+
+  const tasks = params.tasks || [];
+
+  for (const task of tasks) {
+    // Only check incomplete tasks
+    if (task.status === 'completed' || task.status === 'cancelled') {
+      continue;
+    }
+
+    // Determine overdue status
+    const taskDueDate = task.dueDate || todayStr;
+    const taskDueTime = task.dueTime || '18:00';
+    let isPastDue = false;
+
+    if (taskDueDate < todayStr) {
+      isPastDue = true;
+    } else if (taskDueDate === todayStr) {
+      const taskDateTime = new Date(`${taskDueDate}T${taskDueTime}:00`);
+      if (taskDateTime.getTime() < now.getTime()) {
+        isPastDue = true;
+      }
+    }
+
+    if (!isPastDue) {
+      continue;
+    }
+
+    tasksOverdueCount++;
+
+    // Deduplication event key: one alert per overdue cycle per task unless forceTriggered
+    const eventKey = params.forceTrigger
+      ? undefined
+      : `task:${task.id}:overdue:${taskDueDate}`;
+
+    if (eventKey && dispatchedEventKeys.has(eventKey)) {
+      duplicatePreventedCount++;
+      continue;
+    }
+
+    const recipientUserId = task.dealerId || params.dealerId || 'u-dealer-1';
+    const recipientName = params.dealerName || 'Authorized Dealer';
+    const recipientEmail = params.dealerEmail || 'dealer@manziliq.pk';
+    const recipientPhone = params.dealerPhone || '+92 300 4567890';
+    const clientName = task.leadName || 'Prospective Lead';
+    const clientPhone = task.leadPhone || '';
+    const propertyInterest = task.propertyInterest || 'Narowal Housing Plot';
+    const taskTitle = task.title || 'CRM Follow-up Task';
+
+    // Dispatches via Email, Push, and In-App
+    const targetChannels: ('in_app' | 'push' | 'sms' | 'email')[] = params.channels || ['email', 'push', 'in_app'];
+
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; color: #1e293b; border: 1px solid #fecaca; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 14px rgba(225, 29, 72, 0.08);">
+        <div style="background-color: #be123c; color: white; padding: 24px;">
+          <span style="display: inline-block; background: rgba(255,255,255,0.22); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 8px;">
+            Automated CRM Notification
+          </span>
+          <h2 style="margin: 0; font-size: 21px; font-weight: bold;">🚨 Overdue Task Alert</h2>
+          <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.92;">Scheduled Due Date Passed Without Completion</p>
+        </div>
+        <div style="padding: 24px; line-height: 1.6;">
+          <p style="margin-top: 0;">Dear <strong>${recipientName}</strong>,</p>
+          <p>This automated notification is triggered because the following CRM task is <strong>past its due date</strong> and remains uncompleted:</p>
+          
+          <div style="background: #fff1f2; border-left: 4px solid #e11d48; padding: 16px 20px; margin: 18px 0; border-radius: 6px;">
+            <p style="margin: 0 0 8px; font-size: 16px; font-weight: bold; color: #9f1239;">${taskTitle}</p>
+            <p style="margin: 0 0 6px; font-size: 13px; color: #334155;">👤 <strong>Lead:</strong> ${clientName} ${clientPhone ? `(${clientPhone})` : ''}</p>
+            <p style="margin: 0 0 6px; font-size: 13px; color: #334155;">🏡 <strong>Property:</strong> ${propertyInterest}</p>
+            <p style="margin: 0 0 6px; font-size: 13px; color: #e11d48; font-weight: bold;">⏰ <strong>Scheduled Due Date:</strong> ${taskDueDate} at ${taskDueTime}</p>
+            <p style="margin: 0 0 6px; font-size: 13px; color: #64748b;">📍 <strong>Meeting/Channel:</strong> ${task.location || 'Direct Phone Call'}</p>
+            <p style="margin: 0; font-size: 13px; color: #b91c1c;">⚡ <strong>Priority:</strong> ${(task.priority || 'high').toUpperCase()}</p>
+          </div>
+
+          <p style="font-size: 14px; color: #475569;">
+            Timely follow-ups are critical for maintaining buyer trust and securing bookings. Please access your CRM console to record completion notes or reschedule.
+          </p>
+
+          <div style="margin-top: 24px;">
+            <a href="https://manziliq.pk/dealer/leads" style="display: inline-block; background-color: #be123c; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; box-shadow: 0 2px 6px rgba(190, 18, 60, 0.3);">
+              Open CRM to Complete / Reschedule →
+            </a>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
+          <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+            Automated Alert System • MANZILIQ Real Estate CRM • Narowal, Punjab
+          </p>
+        </div>
+      </div>
+    `;
+
+    const dispatchResult = await dispatchNotification({
+      userId: recipientUserId,
+      role: 'dealer',
+      recipientName,
+      recipientPhone,
+      recipientEmail,
+      type: 'task',
+      title: `🚨 Overdue Task Alert: "${taskTitle}"`,
+      message: `Task "${taskTitle}" for lead ${clientName} (${propertyInterest}) was due on ${taskDueDate} at ${taskDueTime} and has not been marked as complete.`,
+      channels: targetChannels,
+      referenceType: 'task',
+      referenceId: task.id,
+      eventKey,
+      deepLinkRoute: '/dealer/leads',
+      fcmTitle: `🚨 Overdue CRM Task: ${taskTitle}`,
+      fcmBody: `Lead ${clientName}. Due was ${taskDueDate} at ${taskDueTime}. Tap to review & complete.`,
+      fcmData: {
+        type: 'task',
+        id: task.id,
+        route: '/dealer/leads',
+        isOverdue: 'true',
+        leadName: clientName,
+        priority: task.priority || 'high'
+      },
+      smsMessage: `[MANZILIQ CRM] OVERDUE: Task "${taskTitle}" for ${clientName} is past due date (${taskDueDate} ${taskDueTime}). Open CRM to resolve: https://manziliq.pk/dealer/leads`,
+      emailSubject: `🚨 Action Required: Overdue Task "${taskTitle}" - Lead: ${clientName}`,
+      emailBody: `Dear ${recipientName},\n\nWARNING: The following CRM task has gone past its due date without being marked as complete:\n\nTask: ${taskTitle}\nClient: ${clientName} (${clientPhone})\nProperty: ${propertyInterest}\nDue Date: ${taskDueDate} at ${taskDueTime}\nPriority: ${(task.priority || 'HIGH').toUpperCase()}\n\nPlease open your CRM workspace to record completion or reschedule:\nhttps://manziliq.pk/dealer/leads\n\nMANZILIQ Automated CRM Task Engine`,
+      emailHtml,
+      isCritical: task.priority === 'urgent' || task.priority === 'high'
+    });
+
+    if (dispatchResult.success) {
+      alertsDispatchedCount++;
+      processedTaskIds.push(task.id);
+      dispatchedAlerts.push({
+        taskId: task.id,
+        taskTitle,
+        leadName: clientName,
+        dueDate: taskDueDate,
+        notificationId: dispatchResult.notification?.id,
+        channelsSent: dispatchResult.notification?.channelsSent || targetChannels,
+        emailRecipient: recipientEmail,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  const summary = `Overdue Task Sweep complete: Found ${tasksOverdueCount} overdue task(s). Triggered ${alertsDispatchedCount} Email & Push notification(s). Prevented ${duplicatePreventedCount} duplicate alert(s).`;
+  console.log(`[Task Overdue Engine] ${summary}`);
+
+  return {
+    success: true,
+    tasksOverdueCount,
+    alertsDispatchedCount,
+    duplicatePreventedCount,
+    processedTaskIds,
+    dispatchedAlerts,
+    summary
   };
 }

@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { generateTransferDeedPDF, generateSaleAgreementPDF } from '../services/legalDocumentService';
 
 export interface DocumentParams {
   docType: 
@@ -6,6 +7,7 @@ export interface DocumentParams {
     | 'booking_agreement' 
     | 'transfer_deed' 
     | 'token_receipt' 
+    | 'token_slip'
     | 'noc_certificate' 
     | 'cancellation_letter' 
     | 'receipt' 
@@ -25,6 +27,8 @@ export interface DocumentParams {
   downPaymentPKR?: number;
   paidAmountPKR?: number;
   installmentNo?: number;
+  monthlyInstallmentPKR?: number;
+  totalInstallments?: number;
   transactionId?: string;
   paymentMethod?: string;
   date?: string;
@@ -41,9 +45,58 @@ export interface DocumentParams {
   expiryDate?: string;
   version?: string;
   verificationCode?: string;
+  transferFeePKR?: number;
 }
 
 export function generatePDFDocument(params: DocumentParams) {
+  // Delegate specialized high-fidelity generation with QR codes for transfer deed and sale agreements
+  if (params.docType === 'transfer_deed') {
+    generateTransferDeedPDF({
+      buyerName: params.buyerName || 'Valued Purchaser',
+      buyerCnic: params.buyerCNIC || '34501-1234567-1',
+      buyerPhone: params.buyerPhone || '+92 300 1234567',
+      buyerAddress: params.buyerAddress,
+      societyName: params.societyName,
+      societyNoc: params.societyNOC || 'LDA/TMA Approved',
+      plotNumber: params.plotNumber || 'Plot 42-A',
+      sector: params.sector || 'Executive Block',
+      block: params.block || 'Block A',
+      sizeMarla: params.sizeMarla || 5,
+      location: 'Narowal / Lahore, Punjab',
+      totalPricePKR: params.totalPricePKR || 2600000,
+      transferFeePKR: params.transferFeePKR || Math.round((params.totalPricePKR || 2600000) * 0.03),
+      transferDate: params.date || params.issueDate || new Date().toISOString().split('T')[0],
+      deedNumber: params.allotmentNumber || `TD-PK-${Date.now().toString().slice(-6)}`,
+      verificationCode: params.verificationCode
+    }, { download: true });
+    return;
+  }
+
+  if (params.docType === 'booking_agreement') {
+    generateSaleAgreementPDF({
+      buyerName: params.buyerName || 'Valued Purchaser',
+      buyerCnic: params.buyerCNIC || '34501-1234567-1',
+      buyerPhone: params.buyerPhone || '+92 300 1234567',
+      buyerAddress: params.buyerAddress,
+      societyName: params.societyName,
+      societyNoc: params.societyNOC || 'LDA/TMA Verified',
+      plotNumber: params.plotNumber || 'Plot 42-A',
+      sector: params.sector || 'Executive Block',
+      block: params.block || 'Block A',
+      sizeMarla: params.sizeMarla || 5,
+      location: 'Narowal / Lahore, Punjab',
+      totalPricePKR: params.totalPricePKR || 2600000,
+      downPaymentPKR: params.downPaymentPKR || Math.round((params.totalPricePKR || 2600000) * 0.2),
+      monthlyInstallmentPKR: params.monthlyInstallmentPKR || Math.round(((params.totalPricePKR || 2600000) * 0.8) / 36),
+      totalInstallments: params.totalInstallments || 36,
+      agreementDate: params.date || params.issueDate || new Date().toISOString().split('T')[0],
+      agreementNumber: params.bookingReference || `AGR-PK-${Date.now().toString().slice(-6)}`,
+      verificationCode: params.verificationCode,
+      dealerName: params.dealerName
+    }, { download: true });
+    return;
+  }
+
   const doc = new jsPDF({
     orientation: 'p',
     unit: 'mm',
@@ -91,13 +144,7 @@ export function generatePDFDocument(params: DocumentParams) {
   let title = 'OFFICIAL PROPERTY ALLOTMENT LETTER';
   let badgeText = 'LDA / TMA VERIFIED STATUTORY ALLOTMENT';
   
-  if (params.docType === 'booking_agreement') {
-    title = 'PLOT SALE & INSTALLMENT AGREEMENT';
-    badgeText = 'LEGALLY BINDING CONTRACT (TRANSFER OF PROPERTY ACT 1882)';
-  } else if (params.docType === 'transfer_deed') {
-    title = 'DEED OF ABSOLUTE OWNERSHIP TRANSFER';
-    badgeText = 'OFFICIAL SUB-REGISTRAR COMPLIANT DEED OF TRANSFER';
-  } else if (params.docType === 'token_receipt') {
+  if (params.docType === 'token_receipt' || params.docType === 'token_slip') {
     title = 'OFFICIAL TOKEN ADVANCE RESERVATION RECEIPT';
     badgeText = 'SOCIETY ESCROW INTERIM RESERVATION RECEIPT';
   } else if (params.docType === 'noc_certificate') {

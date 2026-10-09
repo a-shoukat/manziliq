@@ -42,7 +42,8 @@ const ROUTE_LABELS: Record<string, { label: string; parent?: { label: string; hr
   '/admin/verification-queue': { label: 'KYC & License Verification', parent: { label: 'Super Admin', href: '/admin/overview' } },
   '/admin/moderation': { label: 'Duplicate Listing Moderation', parent: { label: 'Super Admin', href: '/admin/overview' } },
   '/admin/disputes': { label: 'Title Disputes & Plot Freeze', parent: { label: 'Super Admin', href: '/admin/overview' } },
-  '/admin/audit-logs': { label: 'Immutable Audit Logs', parent: { label: 'Super Admin', href: '/admin/overview' } }
+  '/admin/audit-logs': { label: 'Immutable Audit Logs', parent: { label: 'Super Admin', href: '/admin/overview' } },
+  '/properties/add': { label: 'Add Property Listing', parent: { label: 'Marketplace', href: '/marketplace' } }
 };
 
 export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, currentRoute = '', onNavigate }) => {

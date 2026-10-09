@@ -10,7 +10,9 @@ export type NotificationType =
   | 'dispute' 
   | 'verification' 
   | 'system' 
-  | 'inquiry';
+  | 'inquiry'
+  | 'task'
+  | 'site_visit';
 
 export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'read';
 
@@ -24,7 +26,8 @@ export type ReferenceType =
   | 'user' 
   | 'dispute' 
   | 'lead' 
-  | 'inquiry';
+  | 'inquiry'
+  | 'task';
 
 export interface NotificationDeliveryLog {
   id: string;

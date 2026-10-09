@@ -33,9 +33,17 @@ import {
 } from 'lucide-react';
 import { calculateAIPriceEstimate } from '../../utils/aiEstimator';
 import { formatPKR } from '../../components/marketplace/PropertyCard';
-import { copyToClipboard, getPropertyShareUrl, getWhatsAppShareUrl } from '../../utils/shareUtils';
+import { 
+  copyToClipboard, 
+  getPropertyShareUrl, 
+  getWhatsAppShareUrl,
+  getFacebookShareUrl,
+  getTwitterShareUrl,
+  getLinkedInShareUrl 
+} from '../../utils/shareUtils';
 import { SharePropertyModal } from '../../components/common/SharePropertyModal';
 import { PrintPropertySheetModal } from '../../components/common/PrintPropertySheetModal';
+import { PropertyLocationPinMap } from '../../components/maps/PropertyLocationPinMap';
 
 interface PropertyDetailViewProps {
   property: Property;
@@ -319,13 +327,67 @@ export const PropertyDetailView: React.FC<PropertyDetailViewProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          {/* Social Media Quick Share Group */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/90 shadow-2xs">
+            {/* WhatsApp Share */}
+            <a
+              id="btn-social-whatsapp-detail"
+              href={getWhatsAppShareUrl(property)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+              title="Share listing on WhatsApp"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">WhatsApp</span>
+            </a>
+
+            {/* Facebook Share */}
+            <a
+              id="btn-social-facebook-detail"
+              href={getFacebookShareUrl(property)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#1877F2] hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+              title="Share listing on Facebook"
+            >
+              <span className="font-serif font-black text-[13px] leading-none px-0.5">f</span>
+              <span className="hidden sm:inline">Facebook</span>
+            </a>
+
+            {/* Twitter / X Share */}
+            <a
+              id="btn-social-twitter-detail"
+              href={getTwitterShareUrl(property)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-black hover:bg-slate-800 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+              title="Share listing on Twitter / X"
+            >
+              <span className="font-sans font-black text-[11px] leading-none px-0.5">𝕏</span>
+              <span className="hidden sm:inline">Twitter / X</span>
+            </a>
+
+            {/* Full Share Modal Launcher */}
+            <button
+              id="btn-share-detail-view"
+              type="button"
+              onClick={() => setIsShareModalOpen(true)}
+              className="p-1.5 px-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-white transition cursor-pointer text-xs font-bold flex items-center gap-1"
+              title="More social sharing options (LinkedIn, QR Code, Native Share)"
+            >
+              <Share2 className="w-3.5 h-3.5 text-slate-700" />
+              <span className="hidden md:inline text-[11px]">More</span>
+            </button>
+          </div>
+
           {/* Copy Link Button with Visual 'Link Copied!' Feedback */}
           <button
             id="btn-copy-link-detail-view"
             type="button"
             onClick={handleCopyLink}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition cursor-pointer active:scale-95 ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer active:scale-95 ${
               copiedLink
                 ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
                 : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-emerald-800'
@@ -345,28 +407,16 @@ export const PropertyDetailView: React.FC<PropertyDetailViewProps> = ({
             )}
           </button>
 
-          {/* Share Property Button */}
-          <button
-            id="btn-share-detail-view"
-            type="button"
-            onClick={() => setIsShareModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 transition cursor-pointer shadow-2xs active:scale-95"
-            title="Share Property on WhatsApp, Facebook, X, etc."
-          >
-            <Share2 className="w-4 h-4 text-emerald-700" />
-            <span>Share</span>
-          </button>
-
           {/* Print Property Sheet Button */}
           <button
             id="btn-print-sheet-detail-view"
             type="button"
             onClick={() => setIsPrintModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 hover:text-slate-900 transition cursor-pointer shadow-2xs active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 hover:text-slate-900 transition cursor-pointer shadow-2xs active:scale-95"
             title="Open printable property specification sheet for offline documentation"
           >
             <Printer className="w-4 h-4 text-slate-700" />
-            <span>Print Sheet</span>
+            <span className="hidden sm:inline">Print Sheet</span>
           </button>
 
           {/* Compare */}
@@ -374,7 +424,7 @@ export const PropertyDetailView: React.FC<PropertyDetailViewProps> = ({
             id="btn-compare-detail-view"
             type="button"
             onClick={handleCompareClick}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
               (isComparing || isCompared)
                 ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs' 
                 : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -389,7 +439,7 @@ export const PropertyDetailView: React.FC<PropertyDetailViewProps> = ({
             id="btn-wishlist-detail-view"
             type="button"
             onClick={onToggleWishlist}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
               isWishlisted 
                 ? 'bg-rose-50 text-rose-700 border-rose-300 shadow-xs' 
                 : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -649,32 +699,12 @@ export const PropertyDetailView: React.FC<PropertyDetailViewProps> = ({
             )}
           </div>
 
-          {/* Location Map Embed */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-extrabold font-[Outfit] text-slate-900">Demarcation & Location Map</h3>
-                <p className="text-xs text-slate-500">{property.location}</p>
-              </div>
-              {society && (
-                <button
-                  onClick={() => onNavigate(`/societies/${society.id}`)}
-                  className="text-xs font-bold text-emerald-800 hover:text-emerald-900 cursor-pointer"
-                >
-                  View Society Masterplan &rarr;
-                </button>
-              )}
-            </div>
-
-            <div className="h-64 rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
-              <iframe
-                title="Location Map"
-                src={society?.mapEmbedUrl || 'https://maps.google.com/maps?q=Lahore+Punjab+Pakistan&t=&z=13&ie=UTF8&iwloc=&output=embed'}
-                className="w-full h-full border-0"
-                loading="lazy"
-              />
-            </div>
-          </div>
+          {/* Google Maps Location & Ground Demarcation Pin with Directions and Nearby Places */}
+          <PropertyLocationPinMap
+            property={property}
+            society={society}
+            onNavigate={onNavigate}
+          />
 
         </div>
 
@@ -705,60 +735,100 @@ export const PropertyDetailView: React.FC<PropertyDetailViewProps> = ({
             </button>
 
             {/* Quick Share Widget inside Price Sidebar */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                  copiedLink
-                    ? 'bg-emerald-700 text-white border-emerald-700'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                }`}
-              >
-                {copiedLink ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-200" />
+            <div className="pt-3 border-t border-slate-100 space-y-2.5">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                <span>Share This Listing</span>
+                {copiedLink && (
+                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 animate-in fade-in">
+                    <Check className="w-3.5 h-3.5" />
                     <span>Link Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <LinkIcon className="w-3.5 h-3.5" />
-                    <span>Copy Link</span>
-                  </>
+                  </span>
                 )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsShareModalOpen(true)}
-                className="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 transition flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Share2 className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Share Property</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Quick WhatsApp Share Pill for Pakistani Buyers */}
-          <div className="bg-emerald-50/90 border border-emerald-200 p-4 rounded-3xl flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0">
-                <MessageCircle className="w-4 h-4" />
               </div>
-              <div>
-                <div className="text-xs font-bold text-emerald-950">Share via WhatsApp</div>
-                <div className="text-[10px] text-emerald-800">Send property dossier to family/clients</div>
+
+              {/* Social Buttons Grid: WhatsApp, Facebook, Twitter */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {/* WhatsApp */}
+                <a
+                  id="btn-sidebar-share-whatsapp"
+                  href={getWhatsAppShareUrl(property)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-900 transition cursor-pointer text-center group active:scale-95"
+                  title="Share to WhatsApp chat / status"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-emerald-600 group-hover:bg-emerald-700 text-white flex items-center justify-center shadow-xs transition">
+                    <MessageCircle className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-[10px] font-bold">WhatsApp</span>
+                </a>
+
+                {/* Facebook */}
+                <a
+                  id="btn-sidebar-share-facebook"
+                  href={getFacebookShareUrl(property)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200/80 text-blue-900 transition cursor-pointer text-center group active:scale-95"
+                  title="Share to Facebook timeline"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-[#1877F2] group-hover:bg-blue-700 text-white flex items-center justify-center shadow-xs font-serif font-black text-xs transition">
+                    f
+                  </div>
+                  <span className="text-[10px] font-bold">Facebook</span>
+                </a>
+
+                {/* Twitter / X */}
+                <a
+                  id="btn-sidebar-share-twitter"
+                  href={getTwitterShareUrl(property)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300/80 text-slate-900 transition cursor-pointer text-center group active:scale-95"
+                  title="Post to Twitter / X"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-black group-hover:bg-slate-800 text-white flex items-center justify-center shadow-xs font-sans font-black text-[11px] transition">
+                    𝕏
+                  </div>
+                  <span className="text-[10px] font-bold">Twitter / X</span>
+                </a>
+              </div>
+
+              {/* Utility Row: Copy Link & More Options */}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                    copiedLink
+                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                  }`}
+                >
+                  {copiedLink ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-200" />
+                      <span>Link Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <LinkIcon className="w-3.5 h-3.5" />
+                      <span>Copy Link</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsShareModalOpen(true)}
+                  className="py-2 px-3 rounded-xl text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                  title="More sharing options including QR code"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-slate-600" />
+                  <span>More</span>
+                </button>
               </div>
             </div>
-            <a
-              href={getWhatsAppShareUrl(property)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shrink-0 shadow-2xs"
-            >
-              <span>Share</span>
-              <Send className="w-3 h-3 text-emerald-300" />
-            </a>
           </div>
 
           {/* Embedded AI Price Valuation Engine Card */}

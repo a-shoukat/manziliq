@@ -92,9 +92,9 @@ export function deriveSocietyCode(societyName?: string, existingCodes: string[] 
 /**
  * Map category/type to standard prefix: RPL, CPL, RES, COM
  */
-export function getCategoryPrefix(category?: string, type?: string): 'RPL' | 'CPL' | 'RES' | 'COM' {
-  const cat = (category || '').toLowerCase();
-  const t = (type || '').toLowerCase();
+export function getCategoryPrefix(category?: any, type?: any): 'RPL' | 'CPL' | 'RES' | 'COM' {
+  const cat = typeof category === 'string' ? category.toLowerCase() : String(category || '').toLowerCase();
+  const t = typeof type === 'string' ? type.toLowerCase() : String(type || '').toLowerCase();
 
   if (cat.includes('residential plot') || cat.includes('residential_plot') || (t === 'plot' && !cat.includes('commercial'))) {
     return 'RPL';
@@ -116,25 +116,38 @@ export function getCategoryPrefix(category?: string, type?: string): 'RPL' | 'CP
  * Calculate the next auto-generated unique ID preview in the client
  */
 export function previewNextUniqueId(
-  society: Society | undefined | null,
-  category: string,
-  type: string,
+  society: Society | string | undefined | null,
+  category: any = '',
+  type: any = '',
   existingProperties: Property[] = [],
   existingPlots: Plot[] = []
-): { prefixId: string; categoryPrefix: string; societyCode: string; currentSequence: number } {
-  const socCode = society?.societyCode || deriveSocietyCode(society?.name || 'Society');
+): string {
+  let socCode = 'SOC';
+  if (typeof society === 'string') {
+    socCode = society.trim() || 'SOC';
+  } else if (society && typeof society === 'object') {
+    socCode = society.societyCode || (society as any).code || deriveSocietyCode(society.name || 'Society');
+  }
+
   const prefix = getCategoryPrefix(category, type);
 
   // Count existing items in same society and category
   let maxSeq = 0;
 
+  const socId = typeof society === 'object' && society ? society.id : null;
+  const socName = typeof society === 'object' && society ? society.name : null;
+
+  const plotsList = Array.isArray(existingPlots) ? existingPlots : [];
+  const propsList = Array.isArray(existingProperties) ? existingProperties : [];
+
   if (prefix === 'RPL' || prefix === 'CPL') {
     const isCommercial = prefix === 'CPL';
-    existingPlots.forEach(p => {
-      if (p.societyId === society?.id || (p.societyName && society?.name && p.societyName === society.name)) {
-        const plotIsComm = (p.category || '').toLowerCase() === 'commercial';
+    plotsList.forEach(p => {
+      if (!p) return;
+      if (!socId || p.societyId === socId || (p.societyName && socName && p.societyName === socName)) {
+        const plotIsComm = String(p.category || '').toLowerCase() === 'commercial';
         if (plotIsComm === isCommercial && p.propertyId) {
-          const match = p.propertyId.match(/-(\d+)$/);
+          const match = String(p.propertyId).match(/-(\d+)$/);
           if (match) {
             const num = parseInt(match[1], 10);
             if (num > maxSeq) maxSeq = num;
@@ -144,11 +157,12 @@ export function previewNextUniqueId(
     });
   }
 
-  existingProperties.forEach(p => {
-    if (p.societyId === society?.id || (p.societyName && society?.name && p.societyName === society.name)) {
+  propsList.forEach(p => {
+    if (!p) return;
+    if (!socId || p.societyId === socId || (p.societyName && socName && p.societyName === socName)) {
       const pPrefix = getCategoryPrefix(p.category, p.type);
       if (pPrefix === prefix && p.propertyId) {
-        const match = p.propertyId.match(/-(\d+)$/);
+        const match = String(p.propertyId).match(/-(\d+)$/);
         if (match) {
           const num = parseInt(match[1], 10);
           if (num > maxSeq) maxSeq = num;
@@ -161,12 +175,7 @@ export function previewNextUniqueId(
   const padded = String(nextNum).padStart(4, '0');
   const prefixId = `${socCode}-${prefix}-${padded}`;
 
-  return {
-    prefixId,
-    categoryPrefix: prefix,
-    societyCode: socCode,
-    currentSequence: nextNum
-  };
+  return prefixId;
 }
 
 /**

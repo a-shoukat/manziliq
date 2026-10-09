@@ -18,6 +18,15 @@ import {
 } from 'lucide-react';
 import { generatePDFDocument } from '../../utils/pdfGenerator';
 import { DualLayerPlotMap } from '../../components/society/DualLayerPlotMap';
+import { NearbyFacilitiesPanel } from '../../components/maps/NearbyFacilitiesPanel';
+import { 
+  getNearbyFacilities, 
+  SOCIETY_COORDINATES_MAP, 
+  DEFAULT_PAKISTAN_COORDINATES, 
+  LatLng,
+  getDirectionsUrl 
+} from '../../services/googleMapsService';
+import { Navigation, Compass } from 'lucide-react';
 
 interface SocietyDetailViewProps {
   society: Society;
@@ -71,6 +80,20 @@ export const SocietyDetailView: React.FC<SocietyDetailViewProps> = ({
     });
   };
 
+  const societyCoords: LatLng = React.useMemo(() => {
+    if (society.latitude && society.longitude) {
+      return { lat: society.latitude, lng: society.longitude };
+    }
+    if (SOCIETY_COORDINATES_MAP[society.id]) {
+      return SOCIETY_COORDINATES_MAP[society.id].center;
+    }
+    return DEFAULT_PAKISTAN_COORDINATES;
+  }, [society]);
+
+  const nearbyFacilities = React.useMemo(() => {
+    return getNearbyFacilities(societyCoords);
+  }, [societyCoords]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" id="society-detail-view-root">
       
@@ -95,6 +118,9 @@ export const SocietyDetailView: React.FC<SocietyDetailViewProps> = ({
                 NOC: {society.nocNumber}
               </span>
             )}
+            <span className="px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-300 text-xs font-mono">
+              GPS: {societyCoords.lat.toFixed(4)}° N, {societyCoords.lng.toFixed(4)}° E
+            </span>
           </div>
 
           <h1 className="text-2xl sm:text-4xl font-black tracking-tight font-[Outfit]">{society.name}</h1>
@@ -111,6 +137,15 @@ export const SocietyDetailView: React.FC<SocietyDetailViewProps> = ({
               <Download className="w-3.5 h-3.5 text-emerald-700" />
               <span>Download Verified NOC & SECP PDF</span>
             </button>
+            <a
+              href={getDirectionsUrl(societyCoords)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>Navigate on Google Maps</span>
+            </a>
             <a
               href={`tel:${society.contactPhone}`}
               className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition border border-slate-700"
@@ -130,7 +165,7 @@ export const SocietyDetailView: React.FC<SocietyDetailViewProps> = ({
             <span>Dual-Layer Society Map (Google Maps + SVG Masterplan)</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Explore real-world GPS coordinates on Google Maps and toggle the high-fidelity SVG Demarcation Grid to inspect plots, check real-time availability, and book online.
+            Explore real-world GPS coordinates on Google Maps with boundary overlays and toggle the high-fidelity SVG Demarcation Grid to inspect plots, check real-time availability, and book online.
           </p>
         </div>
 
@@ -145,6 +180,46 @@ export const SocietyDetailView: React.FC<SocietyDetailViewProps> = ({
           comparedPlotIds={comparedPlotIds}
           initialLayer="svg_masterplan"
         />
+      </div>
+
+      {/* Society Infrastructure & Nearby POIs Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: Amenities & Approvals */}
+        <div className="lg:col-span-6 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-extrabold font-[Outfit] text-slate-900 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-emerald-800" />
+              <span>Society Amenities & Specifications</span>
+            </h3>
+            <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              {society.amenities.length} Verified Perks
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-600 leading-relaxed">
+            {society.description}
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+            {society.amenities.map((amenity, idx) => (
+              <div 
+                key={idx}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs font-bold text-slate-800"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span>{amenity}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Nearby Facilities (Schools, Hospitals, Mosques, Transport) */}
+        <div className="lg:col-span-6">
+          <NearbyFacilitiesPanel
+            facilities={nearbyFacilities}
+            centerLocation={societyCoords}
+          />
+        </div>
       </div>
 
     </div>

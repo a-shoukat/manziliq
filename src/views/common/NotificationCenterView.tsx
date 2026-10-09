@@ -48,11 +48,26 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
   installments = [],
   dealerLots = []
 }) => {
-  const [activeTab, setActiveTab] = useState<'inbox' | 'scheduler' | 'preferences' | 'fcm' | 'telemetry'>('inbox');
+  const [activeTab, setActiveTab] = useState<'inbox' | 'scheduler' | 'preferences' | 'fcm' | 'telemetry' | 'smtp'>('inbox');
   const [selectedChannel, setSelectedChannel] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isMarkingAll, setIsMarkingAll] = useState(false);
+
+  // Google SMTP State
+  const [smtpStatus, setSmtpStatus] = useState<{
+    configured: boolean;
+    host: string;
+    port: number;
+    secure: boolean;
+    user: string;
+    from: string;
+    isGoogleSmtp: boolean;
+  } | null>(null);
+  const [loadingSmtp, setLoadingSmtp] = useState(false);
+  const [testRecipient, setTestRecipient] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; details?: string } | null>(null);
 
   // Scheduler State
   const [schedulerRunning, setSchedulerRunning] = useState(false);
@@ -94,7 +109,37 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
   useEffect(() => {
     notificationService.fetchPreferences(currentUserId).then(setPreferences);
     loadDeliveryLogs();
+    loadSmtpStatus();
   }, [currentUserId]);
+
+  const loadSmtpStatus = async () => {
+    setLoadingSmtp(true);
+    const status = await notificationService.fetchSmtpStatus();
+    setSmtpStatus(status);
+    setLoadingSmtp(false);
+  };
+
+  const handleSendTestEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testRecipient) return;
+    setSendingTest(true);
+    setTestResult(null);
+    const res = await notificationService.sendTestEmail(testRecipient, 'MANZILIQ Tester');
+    if (res.success) {
+      setTestResult({
+        success: true,
+        message: `Email dispatched successfully! Message ID: ${res.messageId} via ${res.provider}`
+      });
+      loadDeliveryLogs();
+    } else {
+      setTestResult({
+        success: false,
+        message: res.error || 'Failed to dispatch email.',
+        details: res.providerResponse
+      });
+    }
+    setSendingTest(false);
+  };
 
   const loadDeliveryLogs = async () => {
     setLoadingLogs(true);
@@ -280,6 +325,24 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
         >
           <Layers className="w-4 h-4 text-blue-600" />
           <span>Delivery Telemetry & Logs</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('smtp');
+            loadSmtpStatus();
+          }}
+          className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 whitespace-nowrap transition cursor-pointer ${
+            activeTab === 'smtp'
+              ? 'border-emerald-800 text-emerald-800 bg-emerald-50/50 rounded-t-xl'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <Mail className="w-4 h-4 text-emerald-600" />
+          <span>Google SMTP & Email</span>
+          {smtpStatus?.configured && (
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          )}
         </button>
       </div>
 
@@ -814,6 +877,160 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: GOOGLE SMTP & EMAIL CONFIGURATION */}
+      {activeTab === 'smtp' && (
+        <div className="space-y-6">
+          {/* Status Header Card */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-100 shadow-xs">
+                  <Mail className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-xl font-extrabold text-slate-900">Google SMTP Mailer Integration</h3>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                      smtpStatus?.configured
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-amber-100 text-amber-800 border border-amber-200'
+                    }`}>
+                      {smtpStatus?.configured ? 'Active (Live Delivery)' : 'Sandbox Simulation Mode'}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                    Direct outgoing mail gateway via Google's official SMTP service (<code className="text-slate-800 font-mono font-semibold">smtp.gmail.com</code>).
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={loadSmtpStatus}
+                disabled={loadingSmtp}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer self-start sm:self-center"
+              >
+                <RotateCw className={`w-3.5 h-3.5 ${loadingSmtp ? 'animate-spin' : ''}`} />
+                <span>Refresh Status</span>
+              </button>
+            </div>
+
+            {/* Diagnostics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SMTP Host & Port</p>
+                <p className="text-sm font-extrabold text-slate-800 font-mono">{smtpStatus?.host || 'smtp.gmail.com'}:{smtpStatus?.port || 465}</p>
+                <p className="text-[11px] text-slate-500">SSL / TLS Secured Delivery</p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Authenticated Account</p>
+                <p className="text-sm font-extrabold text-slate-800 font-mono truncate">
+                  {smtpStatus?.configured ? (smtpStatus?.user || 'Configured via .env') : 'Not Configured Yet'}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {smtpStatus?.configured ? 'Google App Password handshake' : 'Running in simulated dev sandbox'}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sender Display (From)</p>
+                <p className="text-sm font-extrabold text-slate-800 truncate font-mono">{smtpStatus?.from || 'notifications@manziliq.pk'}</p>
+                <p className="text-[11px] text-slate-500">MANZILIQ Smart Housing</p>
+              </div>
+            </div>
+
+            {/* Credentials Guide Box */}
+            <div className="p-5 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 space-y-3">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-800" />
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-emerald-900">
+                  What Google SMTP Credentials Are Required?
+                </h4>
+              </div>
+              <p className="text-xs text-slate-700 leading-relaxed">
+                Google requires <strong>2 credentials</strong> to send real emails via <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-200 text-emerald-900 font-bold">smtp.gmail.com</code>:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                <div className="p-3.5 bg-white rounded-xl border border-emerald-200 shadow-2xs space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center">1</span>
+                    <span className="text-xs font-bold text-slate-900">Gmail ID / Username</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 font-mono">SMTP_USER=your-account@gmail.com</p>
+                  <p className="text-[11px] text-slate-500">Aapka normal Gmail ya Google Workspace email address.</p>
+                </div>
+
+                <div className="p-3.5 bg-white rounded-xl border border-emerald-200 shadow-2xs space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center">2</span>
+                    <span className="text-xs font-bold text-slate-900">Google 16-Character App Password</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 font-mono">SMTP_PASS=abcd efgh ijkl mnop</p>
+                  <p className="text-[11px] text-slate-500">
+                    Google Security &gt; 2-Step Verification &gt; App Passwords se generate hota hai.
+                  </p>
+                </div>
+              </div>
+              <div className="text-[11px] text-slate-600 bg-emerald-100/50 p-2.5 rounded-lg border border-emerald-200/50">
+                💡 <strong>Important Note:</strong> Google ne direct Gmail password block kiya hua hai, is liye Google App Password banana zaroori hai. Aap mujhe chat me ye do cheezein provide kar sakte hain ya <code className="font-mono text-emerald-950 font-bold">.env</code> me add kar sakte hain!
+              </div>
+            </div>
+
+            {/* Test Email Dispatch Section */}
+            <div className="pt-4 border-t border-slate-100 space-y-4">
+              <div>
+                <h4 className="text-sm font-extrabold text-slate-900">Send Live Test Email</h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Type any destination email address to verify real delivery through the Google SMTP pipeline.
+                </p>
+              </div>
+
+              <form onSubmit={handleSendTestEmail} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. your-email@gmail.com"
+                  value={testRecipient}
+                  onChange={(e) => setTestRecipient(e.target.value)}
+                  className="grow px-4 py-3 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-700 bg-white"
+                />
+                <button
+                  type="submit"
+                  disabled={sendingTest || !testRecipient}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-800 hover:bg-emerald-900 transition cursor-pointer disabled:opacity-50 shadow-xs whitespace-nowrap"
+                >
+                  <Mail className={`w-4 h-4 ${sendingTest ? 'animate-bounce' : ''}`} />
+                  <span>{sendingTest ? 'Sending Test...' : 'Send Live Test Email'}</span>
+                </button>
+              </form>
+
+              {/* Test Result Feedback */}
+              {testResult && (
+                <div className={`p-4 rounded-2xl border text-xs ${
+                  testResult.success 
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
+                    : 'bg-rose-50 border-rose-200 text-rose-900'
+                }`}>
+                  <div className="flex items-start gap-2.5">
+                    {testResult.success ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
+                    )}
+                    <div className="space-y-1">
+                      <p className="font-bold">{testResult.message}</p>
+                      {testResult.details && (
+                        <p className="font-mono text-[11px] opacity-80">{testResult.details}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

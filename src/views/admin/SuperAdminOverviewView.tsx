@@ -124,6 +124,29 @@ export const SuperAdminOverviewView: React.FC<SuperAdminOverviewViewProps> = ({
 
       </div>
 
+      {/* Executive Analytics & Intelligence Launch Banner */}
+      <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-purple-950 p-6 rounded-3xl text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-indigo-800/40">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[11px] font-semibold">
+            <Activity className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Dedicated Business Intelligence & Reporting Engine</span>
+          </div>
+          <h2 className="text-lg sm:text-xl font-bold tracking-tight">
+            Sales, Revenue, Defaulter Tracking & AI Market Analytics
+          </h2>
+          <p className="text-xs text-slate-300">
+            Access deep multi-society sell-through rates, installment aging buckets, user growth metrics, and predictive AI trends with CSV/PDF export.
+          </p>
+        </div>
+        <button
+          onClick={() => onNavigate('/admin/analytics')}
+          className="px-5 py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl text-xs font-extrabold transition shadow-md flex items-center gap-2 shrink-0 cursor-pointer active:scale-95"
+        >
+          <span>Open Full Analytics Dashboard</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+
       {/* Two Columns: Verification Queue Quick Action & Dispute Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         

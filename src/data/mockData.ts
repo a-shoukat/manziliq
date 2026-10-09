@@ -140,6 +140,15 @@ export const INITIAL_SOCIETIES: Society[] = [
     city: 'Lahore',
     district: 'Lahore',
     location: 'Main GT Road, Near Ring Road, Lahore',
+    latitude: 31.5982,
+    longitude: 74.2854,
+    boundaryCoordinates: [
+      { lat: 31.6020, lng: 74.2810 },
+      { lat: 31.6035, lng: 74.2895 },
+      { lat: 31.5945, lng: 74.2920 },
+      { lat: 31.5930, lng: 74.2835 },
+      { lat: 31.6020, lng: 74.2810 }
+    ],
     totalPlots: 24,
     availablePlots: 10,
     reservedPlots: 6,
@@ -165,6 +174,15 @@ export const INITIAL_SOCIETIES: Society[] = [
     city: 'Lahore',
     district: 'Lahore',
     location: 'Expressway Boulevard, Near Capital Park, Islamabad',
+    latitude: 31.5305,
+    longitude: 74.3820,
+    boundaryCoordinates: [
+      { lat: 31.5340, lng: 74.3780 },
+      { lat: 31.5355, lng: 74.3860 },
+      { lat: 31.5270, lng: 74.3875 },
+      { lat: 31.5255, lng: 74.3795 },
+      { lat: 31.5340, lng: 74.3780 }
+    ],
     totalPlots: 24,
     availablePlots: 12,
     reservedPlots: 4,
@@ -190,6 +208,15 @@ export const INITIAL_SOCIETIES: Society[] = [
     city: 'Lahore',
     district: 'Lahore',
     location: 'Circular Avenue, Near GT Road, Rawalpindi',
+    latitude: 31.4850,
+    longitude: 74.3210,
+    boundaryCoordinates: [
+      { lat: 31.4885, lng: 74.3170 },
+      { lat: 31.4898, lng: 74.3255 },
+      { lat: 31.4815, lng: 74.3268 },
+      { lat: 31.4802, lng: 74.3182 },
+      { lat: 31.4885, lng: 74.3170 }
+    ],
     totalPlots: 24,
     availablePlots: 8,
     reservedPlots: 5,
@@ -215,6 +242,15 @@ export const INITIAL_SOCIETIES: Society[] = [
     city: 'Shakargarh',
     district: 'Lahore',
     location: 'Canal Expressway, Faisalabad',
+    latitude: 32.1620,
+    longitude: 75.1610,
+    boundaryCoordinates: [
+      { lat: 32.1660, lng: 75.1560 },
+      { lat: 32.1675, lng: 75.1660 },
+      { lat: 32.1580, lng: 75.1675 },
+      { lat: 32.1565, lng: 75.1575 },
+      { lat: 32.1660, lng: 75.1560 }
+    ],
     totalPlots: 20,
     availablePlots: 14,
     reservedPlots: 2,

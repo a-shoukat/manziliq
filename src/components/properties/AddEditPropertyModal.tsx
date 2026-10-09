@@ -49,6 +49,7 @@ interface AddEditPropertyModalProps {
   plots?: Plot[];
   existingProperty?: Property | null;
   onSave: (propertyData: Property, plotData?: Partial<Plot>) => void;
+  isEmbedded?: boolean;
 }
 
 const DEFAULT_AMENITIES = [
@@ -82,12 +83,14 @@ export const AddEditPropertyModal: React.FC<AddEditPropertyModalProps> = ({
   societies: initialSocieties,
   plots: initialPlots = [],
   existingProperty = null,
-  onSave
+  onSave,
+  isEmbedded = false
 }) => {
   // Role checks
   const isDealer = currentUser.role === 'dealer';
   const isSocietyAdmin = currentUser.role === 'society_admin';
   const isSuperAdmin = currentUser.role === 'super_admin';
+  const isOwner = !isDealer && !isSocietyAdmin && !isSuperAdmin;
 
   // Dynamic Data State (fetched from API or backed by props)
   const [dynamicSocieties, setDynamicSocieties] = useState<Society[]>(initialSocieties);
@@ -386,6 +389,7 @@ export const AddEditPropertyModal: React.FC<AddEditPropertyModalProps> = ({
       currentSocietyObj,
       category,
       typeMapping,
+      [],
       dynamicPlots
     );
   }, [existingProperty, currentSocietyObj, category, typeMapping, dynamicPlots]);
@@ -722,8 +726,21 @@ export const AddEditPropertyModal: React.FC<AddEditPropertyModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div id="add-edit-property-modal" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-slide-down">
+    <div
+      id="add-edit-property-modal"
+      className={
+        isEmbedded
+          ? "w-full"
+          : "fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto"
+      }
+    >
+      <div
+        className={
+          isEmbedded
+            ? "bg-white w-full rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col"
+            : "bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-slide-down"
+        }
+      >
         
         {/* Modal Header with Role Jurisdiction & Live Sync Indicator */}
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
@@ -751,6 +768,11 @@ export const AddEditPropertyModal: React.FC<AddEditPropertyModalProps> = ({
                 {isSuperAdmin && (
                   <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
                     Super Admin (All Societies)
+                  </span>
+                )}
+                {isOwner && (
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Property Owner / Direct Listing
                   </span>
                 )}
               </div>
@@ -790,7 +812,7 @@ export const AddEditPropertyModal: React.FC<AddEditPropertyModalProps> = ({
         </div>
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+        <form onSubmit={handleSubmit} className={`p-4 sm:p-6 ${isEmbedded ? '' : 'overflow-y-auto'} space-y-6 flex-1 text-xs`}>
           
           {/* Linked Demarcation Plot Banner (Data Consistency Assurance) */}
           {linkedPlot ? (

@@ -35,6 +35,12 @@ export interface TemplateData {
   verificationCode?: string;
   role?: string;
   customMessage?: string;
+  taskTitle?: string;
+  taskType?: string;
+  taskId?: string;
+  dueTime?: string;
+  location?: string;
+  priority?: string;
 }
 
 export interface GeneratedTemplate {
@@ -322,6 +328,85 @@ export function renderNotificationTemplate(
         referenceId: data.customerName || 'lead',
         deepLinkRoute: '/dealer/leads',
         defaultChannels: ['in_app', 'push', 'sms', 'email']
+      };
+
+    case 'DEALER_SITE_VISIT_REMINDER':
+      return {
+        type: 'site_visit',
+        title: `🚗 Site Visit Scheduled: ${customer} - ${plot}`,
+        message: `Physical plot inspection scheduled with ${customer} at ${data.location || society} for ${data.dueTime || 'today'}.`,
+        smsPreview: `[MANZILIQ Visit] Site Visit for ${plot} with ${customer} (${data.customerPhone}) at ${data.dueTime || 'scheduled time'}. Location: ${data.location || society}`,
+        emailSubject: `Site Visit Confirmed - ${customer} for ${plot}`,
+        emailBody: `Dear ${data.dealerName || 'Dealer'},\n\nA physical site tour is scheduled:\n\nLead: ${customer} (${data.customerPhone})\nProperty: ${plot} (${society})\nTime: ${data.dueTime || 'Today'}\nMeeting Point: ${data.location || society}\n\nPlease ensure plot demarcations and society brochures are ready.\n\nRegards,\nMANZILIQ CRM`,
+        emailHtml: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;"><div style="background-color: #1e3a8a; color: white; padding: 24px;"><h2 style="margin: 0; font-size: 20px;">🚗 Site Visit Scheduled</h2><p style="margin: 4px 0 0; font-size: 13px; opacity: 0.85;">${plot} • ${society}</p></div><div style="padding: 24px; line-height: 1.6;"><p>Dear <strong>${data.dealerName || 'Dealer'}</strong>,</p><p>Site visit with <strong>${customer}</strong> is confirmed for <strong>${data.dueTime || 'Today'}</strong> at <strong>${data.location || society}</strong>.</p></div></div>`,
+        fcmTitle: `🚗 Site Visit: ${customer}`,
+        fcmBody: `Plot inspection with ${customer} at ${data.dueTime || 'Today'}.`,
+        fcmData: { type: 'site_visit', id: data.taskId || 'site_visit', route: '/dealer/leads' },
+        referenceType: 'task',
+        referenceId: data.taskId || 'site_visit',
+        deepLinkRoute: '/dealer/leads',
+        defaultChannels: ['in_app', 'push', 'sms', 'email']
+      };
+
+    case 'DEALER_FOLLOWUP_CALL_REMINDER':
+      return {
+        type: 'task',
+        title: `📞 Follow-up Call Reminder: ${customer}`,
+        message: `Time to call ${customer} (${data.customerPhone || 'N/A'}) regarding ${plot || 'interest'}. Notes: ${data.customMessage || 'Check status'}.`,
+        smsPreview: `[MANZILIQ] Call Reminder: ${customer} (${data.customerPhone}) regarding ${plot}. Open CRM: https://manziliq.pk/dealer/leads`,
+        emailSubject: `Call Follow-up Reminder - ${customer}`,
+        emailBody: `Dear ${data.dealerName || 'Dealer'},\n\nReminder to call ${customer} (${data.customerPhone}) regarding ${plot}.\n\nTime: ${data.dueTime || 'Today'}\nNotes: ${data.customMessage || 'Follow-up'}\n\nRegards,\nMANZILIQ CRM`,
+        emailHtml: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;"><div style="background-color: #0d9488; color: white; padding: 24px;"><h2 style="margin: 0; font-size: 20px;">📞 Follow-up Call Reminder</h2></div><div style="padding: 24px; line-height: 1.6;"><p>Time to connect with <strong>${customer}</strong> (${data.customerPhone}).</p></div></div>`,
+        fcmTitle: `📞 Call Reminder: ${customer}`,
+        fcmBody: `Follow up with ${customer} (${data.customerPhone}).`,
+        fcmData: { type: 'task', id: data.taskId || 'call', route: '/dealer/leads' },
+        referenceType: 'task',
+        referenceId: data.taskId || 'call',
+        deepLinkRoute: '/dealer/leads',
+        defaultChannels: ['in_app', 'push']
+      };
+
+    case 'DEALER_TASK_DUE_ALERT':
+      return {
+        type: 'task',
+        title: `⏰ Task Due Reminder: ${data.taskTitle || 'CRM Task'}`,
+        message: `Your task "${data.taskTitle}" with ${customer} (${data.customerPhone || 'N/A'}) is due at ${data.dueTime || 'scheduled time'}.`,
+        smsPreview: `[MANZILIQ CRM] Task Due: "${data.taskTitle}" with ${customer} at ${data.dueTime || 'today'}. Open CRM: https://manziliq.pk/dealer/leads`,
+        emailSubject: `⏰ CRM Reminder: Task Due Today - "${data.taskTitle}"`,
+        emailBody: `Dear ${data.dealerName || 'Dealer'},\n\nThis is a reminder that the following task is due today:\n\nTask: ${data.taskTitle}\nClient: ${customer} (${data.customerPhone})\nProperty: ${plot}\nScheduled Time: ${data.dueTime}\nLocation: ${data.location || 'Direct'}\nPriority: ${(data.priority || 'Normal').toUpperCase()}\n\nPlease mark the task as complete once conducted in your CRM portal.\n\nRegards,\nMANZILIQ CRM System`,
+        emailHtml: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;"><div style="background-color: #0d9488; color: white; padding: 24px;"><h2 style="margin: 0; font-size: 20px;">⏰ CRM Task Due Reminder</h2><p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Priority: ${(data.priority || 'NORMAL').toUpperCase()}</p></div><div style="padding: 24px; line-height: 1.6;"><p>Dear <strong>${data.dealerName || 'Dealer'}</strong>,</p><p>You have a scheduled task due today:</p><div style="background: #f0fdfa; border-left: 4px solid #0d9488; padding: 14px 18px; margin: 16px 0; border-radius: 6px;"><p style="margin: 0 0 6px; font-size: 15px; font-weight: bold; color: #0f766e;">${data.taskTitle}</p><p style="margin: 0 0 4px; font-size: 13px;">👤 <strong>Client:</strong> ${customer} (${data.customerPhone})</p><p style="margin: 0 0 4px; font-size: 13px;">🏡 <strong>Property:</strong> ${plot}</p><p style="margin: 0; font-size: 13px;">🕒 <strong>Due:</strong> ${data.dueTime || 'Today'}</p></div><a href="https://manziliq.pk/dealer/leads" style="display: inline-block; background-color: #0d9488; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; margin-top: 8px;">Open CRM Workspace</a></div></div>`,
+        fcmTitle: `⏰ Task Due: ${data.taskTitle}`,
+        fcmBody: `Due at ${data.dueTime || 'today'} with ${customer}. Tap to view.`,
+        fcmData: { type: 'task', id: data.taskId || 'task', route: '/dealer/leads' },
+        referenceType: 'task',
+        referenceId: data.taskId || 'task',
+        deepLinkRoute: '/dealer/leads',
+        defaultChannels: ['in_app', 'push', 'sms']
+      };
+
+    case 'DEALER_TASK_OVERDUE_ALERT':
+      return {
+        type: 'task',
+        title: `🚨 Urgent: Task Past Due Date - "${data.taskTitle || 'CRM Task'}"`,
+        message: `Task "${data.taskTitle}" for lead ${customer} (${plot}) was due on ${data.dueDate || 'scheduled date'} at ${data.dueTime || 'scheduled time'} and has NOT been marked as complete.`,
+        smsPreview: `[MANZILIQ ALERT] OVERDUE: Task "${data.taskTitle}" for ${customer} (${data.customerPhone}) is past due date. Complete or reschedule now: https://manziliq.pk/dealer/leads`,
+        emailSubject: `🚨 Action Required: Overdue Task "${data.taskTitle}" - Lead: ${customer}`,
+        emailBody: `Dear ${data.dealerName || 'Dealer'},\n\nWARNING: The following CRM task has gone past its due date without being marked as complete:\n\nTask: ${data.taskTitle}\nClient / Lead: ${customer} (${data.customerPhone || 'N/A'})\nProperty Interest: ${plot}\nScheduled Due Date: ${data.dueDate} at ${data.dueTime}\nLocation / Channel: ${data.location || 'Direct Phone'}\nPriority Level: ${(data.priority || 'HIGH').toUpperCase()}\n\nPlease take immediate action to either:\n1. Log the task outcome and mark it as completed.\n2. Reschedule the task to a future date.\n\nOpen your CRM Leads Workspace immediately:\nhttps://manziliq.pk/dealer/leads\n\nAutomated Alert Generated by MANZILIQ CRM Task Monitor.`,
+        emailHtml: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; border: 1px solid #fecaca; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.08);"><div style="background-color: #be123c; color: white; padding: 24px;"><div style="display: inline-block; background-color: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 8px;">Automated CRM Alert</div><h2 style="margin: 0; font-size: 20px; font-weight: bold;">🚨 Overdue Task Notification</h2><p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Scheduled Due Date Expired Without Completion</p></div><div style="padding: 24px; line-height: 1.6;"><p>Dear <strong>${data.dealerName || 'Authorized Dealer'}</strong>,</p><p>An automated scan detected that the following CRM task has <strong>passed its scheduled due date</strong> without being resolved or marked as complete:</p><div style="background: #fff1f2; border-left: 4px solid #e11d48; padding: 16px 20px; margin: 18px 0; border-radius: 6px;"><p style="margin: 0 0 6px; font-size: 16px; font-weight: bold; color: #9f1239;">${data.taskTitle}</p><p style="margin: 0 0 4px; font-size: 13px; color: #334155;">👤 <strong>Lead Name:</strong> ${customer} &nbsp;•&nbsp; 📞 ${data.customerPhone || 'No phone'}</p><p style="margin: 0 0 4px; font-size: 13px; color: #334155;">🏡 <strong>Property Interest:</strong> ${plot}</p><p style="margin: 0 0 4px; font-size: 13px; color: #e11d48; font-weight: bold;">⏰ <strong>Due Date:</strong> ${data.dueDate || 'Past Due'} at ${data.dueTime || ''}</p><p style="margin: 0; font-size: 12px; color: #64748b;">📍 <strong>Venue/Method:</strong> ${data.location || 'Direct Call'}</p></div><p style="font-size: 14px; color: #475569;">Unresolved tasks impact lead conversion and deal milestones. Please open your CRM dashboard to record the completion notes, adjust the deal stage, or reschedule this task.</p><div style="margin-top: 24px;"><a href="https://manziliq.pk/dealer/leads" style="display: inline-block; background-color: #be123c; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; box-shadow: 0 2px 6px rgba(190, 18, 60, 0.3);">Open CRM to Complete / Reschedule Task →</a></div><hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;" /><p style="margin: 0; font-size: 11px; color: #94a3b8;">This automated notice was triggered by the MANZILIQ CRM Task Overdue Watcher because the task remains incomplete past its due date.</p></div></div>`,
+        fcmTitle: `🚨 Overdue Task: ${data.taskTitle}`,
+        fcmBody: `Task for ${customer} (${plot}) is past due date (${data.dueDate} ${data.dueTime}). Tap to resolve.`,
+        fcmData: { 
+          type: 'task', 
+          id: data.taskId || 'overdue_task', 
+          route: '/dealer/leads',
+          isOverdue: 'true',
+          leadName: customer,
+          priority: data.priority || 'high'
+        },
+        referenceType: 'task',
+        referenceId: data.taskId || 'overdue_task',
+        deepLinkRoute: '/dealer/leads',
+        defaultChannels: ['email', 'push', 'in_app']
       };
 
     // ----------------------------------------------------

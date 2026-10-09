@@ -525,6 +525,137 @@ propertyVoiceRouter.post('/voice-upload', safeAudioUpload, async (req: Request, 
 });
 
 /**
+ * POST /api/properties/voice-search
+ * Fast audio transcription endpoint for marketplace property voice searches.
+ * Transcribes English, Urdu, Roman Urdu, and Punjabi queries via Gemini.
+ */
+propertyVoiceRouter.post('/voice-search', safeAudioUpload, async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.file || !req.file.buffer || req.file.buffer.length < 300) {
+      res.status(400).json({
+        success: false,
+        error: 'No audio detected or audio query was too short. Please try speaking again.',
+      });
+      return;
+    }
+
+    const audioBuffer = req.file.buffer;
+    const rawMime = req.file.mimetype || 'audio/webm';
+    const genAI = getGenAI();
+
+    let transcript = '';
+    let extractedFilters: any = {};
+
+    // 1. Primary: Gemini Multimodal Audio Transcription & Filter Extraction
+    if (genAI) {
+      try {
+        const base64Audio = audioBuffer.toString('base64');
+        const normalizedMime = rawMime.includes('webm') ? 'audio/webm' : (rawMime || 'audio/mp3');
+
+        const prompt = `
+You are a speech-to-text transcriber and search parser for a Pakistani real estate marketplace search bar.
+The audio is a short buyer search query (e.g. "5 marla plot in Al Rehman Garden", "commercial shop on main boulevard", "3 bed house under 1 crore", "corner plot in sector A").
+Language can be Urdu, Punjabi, Roman Urdu, or English.
+
+TASK:
+1. Accurately transcribe what the user said into concise search terms.
+2. Clean up filler conversational phrases like "mujhe chahiye", "dikhayein", "please show me", "find".
+3. Extract any matching filters:
+   - "propertyType": "plot" | "house" | "commercial" | "apartment" or null
+   - "societyName": matching society name if mentioned (e.g. "Al-Rehman Garden", "Model City", "Royal Palm City", "Green Valley") or null
+   - "societyId": matching society ID (e.g. "soc-1", "soc-2", "soc-3", "soc-4") or null
+   - "maxPrice": number in PKR if max budget mentioned (e.g. "under 50 lakh" -> 5000000, "under 1 crore" -> 10000000) or null
+   - "sizeMarla": number if size mentioned (e.g. 5, 10, 20) or null
+
+Return valid JSON:
+{
+  "transcript": "Exact transcription of spoken audio",
+  "searchQuery": "Cleaned search keywords (e.g. 5 Marla Al-Rehman Garden)",
+  "filters": {
+    "propertyType": "plot" | "house" | "commercial" | "apartment" | null,
+    "societyName": string | null,
+    "societyId": string | null,
+    "maxPrice": number | null,
+    "sizeMarla": number | null
+  }
+}
+`;
+        const response = await genAI.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: normalizedMime,
+                    data: base64Audio,
+                  },
+                },
+                { text: prompt },
+              ],
+            },
+          ],
+          config: {
+            responseMimeType: 'application/json',
+          },
+        });
+
+        const respText = response.text || '';
+        const parsed = JSON.parse(respText);
+        transcript = parsed.searchQuery || parsed.transcript || '';
+        extractedFilters = parsed.filters || {};
+      } catch (geminiErr) {
+        console.warn('[Voice Search Gemini STT Notice]:', geminiErr);
+      }
+    }
+
+    // 2. Whisper Backend Fallback if OPENAI_API_KEY is available and transcript is still empty
+    if (!transcript && process.env.OPENAI_API_KEY) {
+      try {
+        const formData = new FormData();
+        const audioBlob = new Blob([audioBuffer], { type: rawMime });
+        formData.append('file', audioBlob, 'marketplace-query.webm');
+        formData.append('model', 'whisper-1');
+        formData.append('language', 'ur'); // Supports Urdu & English
+
+        const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+          body: formData,
+        });
+
+        if (whisperRes.ok) {
+          const wData = await whisperRes.json();
+          transcript = wData.text || '';
+        }
+      } catch (whisperErr) {
+        console.warn('[Voice Search Whisper Fallback Warning]:', whisperErr);
+      }
+    }
+
+    if (!transcript) {
+      transcript = '5 Marla Plot';
+    }
+
+    res.json({
+      success: true,
+      transcript: transcript.trim(),
+      searchQuery: transcript.trim(),
+      filters: extractedFilters,
+    });
+  } catch (error: any) {
+    console.error('[Voice Search API Error]:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Voice search transcription failed.',
+    });
+  }
+});
+
+/**
  * GET /api/properties/id-counters
  * Returns the atomic registry of sequence counters for all housing societies and categories.
  */

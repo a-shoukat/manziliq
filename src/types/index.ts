@@ -56,6 +56,10 @@ export interface Society {
   city: string;
   district: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
+  coordinates?: { lat: number; lng: number };
+  boundaryCoordinates?: Array<{ lat: number; lng: number }>;
   totalPlots: number;
   availablePlots: number;
   reservedPlots: number;
@@ -98,6 +102,8 @@ export interface Plot {
   dimensions: string; // e.g. "25x45"
   features: string[];
   coordinates: { x: number; y: number }; // SVG grid position x,y
+  latitude?: number;
+  longitude?: number;
   geoCoordinates?: { lat: number; lng: number };
   svgZoneId?: string;
   dealerId?: string;
@@ -155,6 +161,8 @@ export interface Property {
   status: 'approved' | 'pending' | 'rejected';
   verificationStatus?: 'verified' | 'pending' | 'rejected';
   listingStatus?: 'available' | 'reserved' | 'sold' | 'disputed';
+  latitude?: number;
+  longitude?: number;
   geoCoordinates?: { lat: number; lng: number };
   coordinates?: { x: number; y: number } | { lat: number; lng: number };
   svgZoneId?: string;
@@ -532,4 +540,6 @@ export interface SavedComparison {
   plotsCount: number;
   notes?: string;
 }
+
+export * from './crm';
 

@@ -5,6 +5,12 @@ import { createServer as createViteServer } from 'vite';
 import { notificationRouter } from './server/routes';
 import { aiRouter } from './server/ai';
 import { propertyVoiceRouter } from './server/propertyVoice';
+import { priceEstimatorRouter } from './server/priceEstimator';
+import { legalDocumentsRouter } from './server/legalDocuments';
+import { analyticsRouter } from './server/analyticsRouter';
+import { getSocieties, getPlots, getProperties } from './src/db/properties.ts';
+import { getUsers } from './src/db/users.ts';
+import { requireAuth, AuthRequest } from './src/middleware/auth.ts';
 import { runSeed } from './scripts/seed';
 import { 
   SEED_USERS, 
@@ -20,7 +26,7 @@ import {
   SEED_DISPUTES
 } from './scripts/seedData';
 
-dotenv.config();
+dotenv.config({ override: true });
 
 async function startServer() {
   const app = express();
@@ -84,6 +90,48 @@ async function startServer() {
   // Serve voice notes and uploads statically
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
+  // Cloud SQL Database APIs (Societies, Plots, Properties, Users)
+  app.get('/api/db/societies', async (_req, res) => {
+    try {
+      const dbSocieties = await getSocieties();
+      res.json({ success: true, societies: dbSocieties });
+    } catch (error: any) {
+      console.error('Failed to fetch societies from database:', error);
+      res.status(500).json({ success: false, error: 'Database query failed' });
+    }
+  });
+
+  app.get('/api/db/plots', async (req, res) => {
+    try {
+      const socId = typeof req.query.societyId === 'string' ? req.query.societyId : undefined;
+      const dbPlots = await getPlots(socId);
+      res.json({ success: true, plots: dbPlots });
+    } catch (error: any) {
+      console.error('Failed to fetch plots from database:', error);
+      res.status(500).json({ success: false, error: 'Database query failed' });
+    }
+  });
+
+  app.get('/api/db/properties', async (_req, res) => {
+    try {
+      const dbProperties = await getProperties();
+      res.json({ success: true, properties: dbProperties });
+    } catch (error: any) {
+      console.error('Failed to fetch properties from database:', error);
+      res.status(500).json({ success: false, error: 'Database query failed' });
+    }
+  });
+
+  app.get('/api/db/users', requireAuth, async (_req: AuthRequest, res) => {
+    try {
+      const dbUsers = await getUsers();
+      res.json({ success: true, users: dbUsers });
+    } catch (error: any) {
+      console.error('Failed to fetch users from database:', error);
+      res.status(500).json({ success: false, error: 'Database query failed' });
+    }
+  });
+
   // Mount Centralized Notification Orchestrator API Routes
   app.use('/api/notifications', notificationRouter);
 
@@ -92,6 +140,15 @@ async function startServer() {
 
   // Mount Voice Property Listing & Management API Routes
   app.use('/api/properties', propertyVoiceRouter);
+
+  // Mount AI Property Price Estimation Proxy API Routes (FYP Module 8)
+  app.use('/api/price-estimate', priceEstimatorRouter);
+
+  // Mount Legal Documentation, Transfer Deeds & Digital Agreements API (FYP Module 9)
+  app.use('/api/documents', legalDocumentsRouter);
+
+  // Mount Executive Analytics & Comprehensive Reporting API (FYP Module 10)
+  app.use('/api/analytics', analyticsRouter);
 
   // Guard: Catch-all 404 for unmatched /api routes so they return JSON rather than Vite SPA index.html
   app.all('/api/*', (req, res) => {
@@ -104,7 +161,7 @@ async function startServer() {
   // Vite middleware for development vs static bundle for production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true, host: '0.0.0.0', port: PORT },
+      server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -117,6 +174,8 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
     console.log(`[MANZILIQ Server] Application running at http://0.0.0.0:${PORT}`);
     console.log(`[MANZILIQ Server] Multi-channel Notification Engine active (SMS, Email, FCM Push, In-App)`);
   });

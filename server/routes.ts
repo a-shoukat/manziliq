@@ -8,9 +8,11 @@ import {
   updateUserPreferences,
   getAllDeliveryLogs,
   retryNotificationDispatch,
-  runAutomatedScheduledJobs
+  runAutomatedScheduledJobs,
+  checkAndDispatchOverdueTasks
 } from './notificationOrchestrator';
 import { registerDeviceToken, getUserDeviceTokens, invalidateToken } from './fcmService';
+import { getSmtpConfigStatus, verifySmtpConnection, sendEmailNotification } from './emailService';
 
 export const notificationRouter: Router = express.Router();
 
@@ -134,8 +136,20 @@ notificationRouter.post('/scheduler/run', async (req: Request, res: Response) =>
   }
 });
 
+// 9b. CRM Tasks Overdue Automated Sweeper Endpoint
+notificationRouter.post('/tasks/check-overdue', async (req: Request, res: Response) => {
+  try {
+    const result = await checkAndDispatchOverdueTasks(req.body);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Error in task overdue sweep:', error);
+    res.status(500).json({ success: false, error: error.message || 'Failed to execute overdue task sweep' });
+  }
+});
+
 // 10. Service Status & Config Inspection
 notificationRouter.get('/status', (_req: Request, res: Response) => {
+  const smtpStatus = getSmtpConfigStatus();
   res.json({
     status: 'online',
     timestamp: new Date().toISOString(),
@@ -153,9 +167,45 @@ notificationRouter.get('/status', (_req: Request, res: Response) => {
       },
       email: {
         available: true,
-        configured: Boolean(process.env.SMTP_HOST),
-        mode: process.env.SMTP_HOST ? 'Live SMTP Mailer' : 'Development Mail Simulator'
+        configured: smtpStatus.configured,
+        mode: smtpStatus.configured 
+          ? `Live ${smtpStatus.isGoogleSmtp ? 'Google SMTP' : 'SMTP'} (${smtpStatus.host})` 
+          : 'Development Mail Simulator',
+        smtpStatus
       }
     }
   });
+});
+
+// 11. Google / SMTP Connection Test & Verification
+notificationRouter.get('/smtp/status', (_req: Request, res: Response) => {
+  res.json({ success: true, ...getSmtpConfigStatus() });
+});
+
+notificationRouter.post('/smtp/verify', async (req: Request, res: Response) => {
+  try {
+    const result = await verifySmtpConnection(req.body);
+    res.json({ success: result.ok, ...result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+notificationRouter.post('/smtp/test-send', async (req: Request, res: Response) => {
+  try {
+    const { recipientEmail, recipientName } = req.body;
+    if (!recipientEmail) {
+      return res.status(400).json({ success: false, error: 'recipientEmail is required' });
+    }
+    const result = await sendEmailNotification({
+      recipientEmail,
+      recipientName: recipientName || 'MANZILIQ Tester',
+      subject: 'MANZILIQ Google SMTP Delivery Test',
+      bodyText: `Hello! This is a test email sent from MANZILIQ Smart Housing via Google SMTP (${process.env.SMTP_HOST || 'smtp.gmail.com'}).\n\nYour Google SMTP credentials are functioning properly!\nTimestamp: ${new Date().toLocaleString()}`,
+      referenceId: `TEST-SMTP-${Date.now()}`
+    });
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });

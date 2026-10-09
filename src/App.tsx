@@ -97,6 +97,7 @@ import { SocietyFinancialsView } from './views/society/SocietyFinancialsView';
 
 // Super Admin Dashboard Views
 import { SuperAdminOverviewView } from './views/admin/SuperAdminOverviewView';
+import { SuperAdminAnalyticsView } from './views/admin/SuperAdminAnalyticsView';
 import { AdminUsersManagementView } from './views/admin/AdminUsersManagementView';
 import { AdminVerificationQueueView } from './views/admin/AdminVerificationQueueView';
 import { AdminContentModerationView } from './views/admin/AdminContentModerationView';
@@ -109,6 +110,7 @@ import { DocumentLockerGrid } from './components/common/DocumentLockerGrid';
 import { DealPipelineKanban } from './components/common/DealPipelineKanban';
 import { AddPropertyView } from './views/properties/AddPropertyView';
 import { AddEditPropertyModal } from './components/properties/AddEditPropertyModal';
+import { Layers, Settings } from 'lucide-react';
 
 export default function App() {
   // Global Entities State
@@ -273,7 +275,6 @@ export default function App() {
                         currentRoute.startsWith('/dealer/') ||
                         currentRoute.startsWith('/society/') ||
                         currentRoute.startsWith('/admin/') ||
-                        currentRoute === '/properties/add' ||
                         currentRoute.startsWith('/properties/edit/') ||
                         currentRoute === '/profile' ||
                         currentRoute === '/settings';
@@ -286,7 +287,7 @@ export default function App() {
 
     // 2. Role Boundary Enforcement
     if (currentUser.role === 'buyer') {
-      if (currentRoute.startsWith('/dealer/') || currentRoute.startsWith('/society/') || currentRoute.startsWith('/admin/') || currentRoute === '/properties/add') {
+      if (currentRoute.startsWith('/dealer/') || currentRoute.startsWith('/society/') || currentRoute.startsWith('/admin/')) {
         triggerToast('Access Restricted: Customer accounts cannot access administrative portals.');
         handleNavigate('/buyer/overview');
       }
@@ -1241,11 +1242,48 @@ export default function App() {
 
   // Property Creation & Synchronization Handler
   const handleOpenAddProperty = (prop?: Property) => {
-    setEditingProperty(prop || null);
-    setAddPropertyModalOpen(true);
+    if (prop) {
+      setEditingProperty(prop);
+      setAddPropertyModalOpen(true);
+    } else {
+      setEditingProperty(null);
+      handleNavigate('/properties/add');
+    }
   };
 
   const handleSaveProperty = (propData: Property, plotData?: Partial<Plot>) => {
+    // Validation layer: ensure all required fields like title, pricePKR, and sizeMarla are present before updating state
+    if (!propData) {
+      triggerToast('⚠️ Validation Error: Property data is required.');
+      return;
+    }
+
+    const missingFields: string[] = [];
+    if (!propData.title || typeof propData.title !== 'string' || !propData.title.trim()) {
+      missingFields.push('title');
+    }
+    if (
+      propData.pricePKR === undefined ||
+      propData.pricePKR === null ||
+      isNaN(Number(propData.pricePKR)) ||
+      Number(propData.pricePKR) <= 0
+    ) {
+      missingFields.push('pricePKR');
+    }
+    if (
+      propData.sizeMarla === undefined ||
+      propData.sizeMarla === null ||
+      isNaN(Number(propData.sizeMarla)) ||
+      Number(propData.sizeMarla) <= 0
+    ) {
+      missingFields.push('sizeMarla');
+    }
+
+    if (missingFields.length > 0) {
+      triggerToast(`⚠️ Validation Error: Missing required field(s): ${missingFields.join(', ')}. Please provide valid values before saving.`);
+      return;
+    }
+
     if (editingProperty) {
       setProperties(prev => prev.map(p => p.id === propData.id ? propData : p));
       if (plotData && propData.plotNumber) {
@@ -1254,6 +1292,7 @@ export default function App() {
       triggerToast(`Property "${propData.title}" updated successfully!`);
     } else {
       const newPropId = propData.id || `prop-${Date.now()}`;
+      const finalStatus = propData.status || (currentUser.role === 'dealer' || currentUser.role === 'buyer' || currentUser.role === 'public_buyer' ? 'pending' : 'approved');
       const newProp: Property = {
         ...propData,
         id: newPropId,
@@ -1262,7 +1301,7 @@ export default function App() {
         dealerId: propData.dealerId || (currentUser.role === 'dealer' ? currentUser.id : undefined),
         dealerName: propData.dealerName || (currentUser.role === 'dealer' ? currentUser.name : undefined),
         createdAt: 'Just now',
-        status: 'approved'
+        status: finalStatus
       };
       setProperties(prev => [newProp, ...prev]);
 
@@ -1295,7 +1334,11 @@ export default function App() {
         ...(plotData || {})
       };
       setPlots(prev => [newPlot, ...prev]);
-      triggerToast(`🎉 Property "${newProp.title}" published & synced to Masterplan!`);
+      if (finalStatus === 'pending') {
+        triggerToast(`Property "${newProp.title}" submitted! Awaiting Super Admin moderation approval.`);
+      } else {
+        triggerToast(`🎉 Property "${newProp.title}" published & synced to Masterplan!`);
+      }
     }
     setAddPropertyModalOpen(false);
     setEditingProperty(null);
@@ -1326,9 +1369,17 @@ export default function App() {
       
       {/* Toast Alert Banner */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-2xl font-bold text-xs shadow-2xl border border-slate-700 flex items-center gap-2 animate-bounce">
-          <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-          <span>{toastMessage}</span>
+        <div className={`fixed top-20 right-6 z-50 px-4 py-3 rounded-2xl font-bold text-xs shadow-2xl border flex items-center gap-2.5 transition-all max-w-md ${
+          toastMessage.includes('⚠️') || toastMessage.toLowerCase().includes('validation') || toastMessage.toLowerCase().includes('error')
+            ? 'bg-rose-950 text-rose-100 border-rose-600 shadow-rose-900/40 ring-2 ring-rose-500/20'
+            : 'bg-slate-900 text-white border-slate-700 shadow-slate-900/40'
+        }`}>
+          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+            toastMessage.includes('⚠️') || toastMessage.toLowerCase().includes('validation') || toastMessage.toLowerCase().includes('error')
+              ? 'bg-rose-500 animate-pulse'
+              : 'bg-amber-400'
+          }`}></span>
+          <span className="leading-snug">{toastMessage}</span>
         </div>
       )}
 
@@ -1360,7 +1411,34 @@ export default function App() {
         
         {isDashboardRoute ? (
           /* Dashboard Layout with Persistent Collapsible Sidebar & Breadcrumbs */
-          <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row gap-8">
+          <div className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 flex flex-col md:flex-row gap-4 md:gap-8">
+            
+            {/* Mobile Dashboard Navigation Bar (Visible only on mobile screens < md) */}
+            <div className="md:hidden flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-200 shadow-xs">
+              <button
+                type="button"
+                onClick={() => setMobileSidebarOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-900 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition cursor-pointer"
+              >
+                <Layers className="w-4 h-4 text-amber-400" />
+                <span>Dashboard Menu</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200">
+                  {currentUser.role.replace('_', ' ')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleNavigate('/profile')}
+                  className="p-2 text-slate-600 hover:text-slate-950 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200"
+                  title="Profile & Settings"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
             <DashboardSidebar
               currentRoute={currentRoute}
               currentUser={currentUser}
@@ -1377,7 +1455,7 @@ export default function App() {
               }}
             />
 
-            <main className="flex-1 min-w-0 space-y-6">
+            <main className="flex-1 min-w-0 space-y-5 sm:space-y-6">
               <Breadcrumbs currentRoute={currentRoute} onNavigate={handleNavigate} />
 
               {/* Shared Role-Aware Profile & Settings Page */}
@@ -1533,14 +1611,14 @@ export default function App() {
                   currentUser={currentUser}
                   properties={properties}
                   societies={societies}
-                  onAddProperty={(newProp) => {
-                    setProperties([newProp, ...properties]);
-                    triggerToast(`Property "${newProp.title}" published!`);
-                  }}
+                  plots={plots}
+                  onAddProperty={handleSaveProperty}
+                  onUpdateProperty={handleSaveProperty}
                   onDeleteProperty={(id) => {
                     setProperties(properties.filter(p => p.id !== id));
                     triggerToast('Listing removed.');
                   }}
+                  onNavigate={handleNavigate}
                 />
               )}
 
@@ -1630,6 +1708,17 @@ export default function App() {
                 />
               )}
 
+              {currentRoute === '/admin/analytics' && (
+                <SuperAdminAnalyticsView
+                  currentUser={currentUser}
+                  societies={societies}
+                  properties={properties}
+                  bookings={bookings}
+                  plots={plots}
+                  onNavigate={handleNavigate}
+                />
+              )}
+
               {currentRoute === '/admin/verification-queue' && (
                 <AdminVerificationQueueView
                   verificationRequests={verificationRequests}
@@ -1657,6 +1746,14 @@ export default function App() {
                   onDeleteProperty={(id) => {
                     setProperties(properties.filter(p => p.id !== id));
                     triggerToast('Listing delisted permanently.');
+                  }}
+                  onApproveProperty={(id) => {
+                    setProperties(prev => prev.map(p => p.id === id ? { ...p, status: 'approved' } : p));
+                    triggerToast('Property listing approved and published to marketplace!');
+                  }}
+                  onRejectProperty={(id) => {
+                    setProperties(prev => prev.map(p => p.id === id ? { ...p, status: 'rejected' } : p));
+                    triggerToast('Property listing rejected.');
                   }}
                   onNavigate={handleNavigate}
                   onOpenAddProperty={() => handleOpenAddProperty()}
@@ -1690,6 +1787,7 @@ export default function App() {
                   currentUser={currentUser}
                   societies={societies}
                   plots={plots}
+                  properties={properties}
                   existingProperty={currentRoute.startsWith('/properties/edit/') ? properties.find(p => p.id === currentRoute.replace('/properties/edit/', '')) : null}
                   onSaveProperty={handleSaveProperty}
                   onNavigate={handleNavigate}

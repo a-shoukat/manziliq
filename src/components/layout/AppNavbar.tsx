@@ -67,9 +67,21 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
 
   const isPublicBuyer = currentUser.role === 'public_buyer';
 
+  const roleBadgeConfig = {
+    label: currentUser.role === 'public_buyer' ? 'Guest' :
+           currentUser.role === 'buyer' ? 'Buyer' :
+           currentUser.role === 'dealer' ? 'Dealer' :
+           currentUser.role === 'society_admin' ? 'Society Admin' : 'Super Admin',
+    badgeClass: currentUser.role === 'buyer' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                currentUser.role === 'dealer' ? 'bg-teal-100 text-teal-800 border-teal-200' :
+                currentUser.role === 'society_admin' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
+                currentUser.role === 'super_admin' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' : 'bg-slate-100 text-slate-700 border-slate-200'
+  };
+
   const navLinks = [
     { label: 'Marketplace', route: '/marketplace' },
     { label: 'Societies', route: '/societies' },
+    { label: 'Add Property', route: '/properties/add' },
     { label: 'AI Estimator', route: '/price-estimator' },
     { 
       label: 'Compare', 
@@ -85,18 +97,18 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8">
-        <div className="flex items-center justify-between h-[68px]">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-[68px]">
           
           {/* 1. LOGO AREA (left) */}
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-2 sm:gap-8 min-w-0">
             <button 
               id="navbar-brand-logo"
               onClick={() => handleLinkClick('/')}
-              className="flex items-center cursor-pointer group focus:outline-none py-1"
+              className="flex items-center cursor-pointer group focus:outline-none py-1 min-w-0"
               aria-label="ManzilIQ Home"
             >
-              <ManzilIQLogo variant="horizontal" size="md" theme="light" showTagline={true} />
+              <ManzilIQLogo variant="horizontal" size="sm" theme="light" showTagline={true} />
             </button>
 
             {/* 2. MAIN NAV LINKS (center / desktop) */}
@@ -130,8 +142,24 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
           </div>
 
           {/* 3. RIGHT SIDE: UTILITY & AUTH/ACCOUNT AREA */}
-          <div className="flex items-center gap-4 sm:gap-5">
+          <div className="flex items-center gap-3 sm:gap-4">
             
+            {/* Quick Add Property Listing Button */}
+            <button
+              id="btn-navbar-add-property"
+              onClick={() => handleLinkClick('/properties/add')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95 ${
+                currentRoute === '/properties/add'
+                  ? 'bg-emerald-800 text-white shadow-emerald-900/20'
+                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
+              }`}
+              title="Add New Property Listing"
+            >
+              <PlusCircle className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">Add Property</span>
+              <span className="sm:hidden">+ Add</span>
+            </button>
+
             {/* Utility: Consolidated Notifications Bell */}
             <div className="relative" ref={notifRef}>
               <button
@@ -151,8 +179,8 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
 
               {/* Notification Popover */}
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-88 bg-white rounded-2xl border border-slate-200 shadow-xl p-4 z-50 space-y-3 text-xs animate-in fade-in zoom-in-95 duration-150">
-                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                <div className="fixed sm:absolute inset-x-3 sm:inset-x-auto right-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-88 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 z-50 space-y-3 text-xs animate-in fade-in zoom-in-95 duration-150 max-h-[80vh] overflow-hidden flex flex-col">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 shrink-0">
                     <div className="flex items-center gap-2">
                       <span className="font-extrabold text-slate-900 text-sm">Notifications</span>
                       {unreadNotificationsCount > 0 && (
@@ -172,13 +200,13 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
                     </button>
                   </div>
 
-                  <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto space-y-1">
+                  <div className="divide-y divide-slate-100 overflow-y-auto space-y-1 pr-1 flex-1">
                     {notificationList.length === 0 ? (
                       <div className="py-6 text-center text-slate-400 text-xs">
                         No notifications yet.
                       </div>
                     ) : (
-                      notificationList.slice(0, 4).map(n => (
+                      notificationList.slice(0, 5).map(n => (
                         <div 
                           key={n.id} 
                           className={`py-2.5 px-2 rounded-xl transition cursor-pointer hover:bg-slate-50 ${
@@ -191,7 +219,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
                           }}
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <strong className="text-slate-900 text-xs truncate max-w-[200px]">{n.title}</strong>
+                            <strong className="text-slate-900 text-xs truncate max-w-[180px] sm:max-w-[200px]">{n.title}</strong>
                             <span className="text-[10px] text-slate-400 shrink-0">{n.date || n.createdAt || 'Recent'}</span>
                           </div>
                           <p className="text-[11px] text-slate-600 line-clamp-2 mt-0.5 leading-relaxed">{n.message}</p>
@@ -280,20 +308,18 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
                         <span>Role Dashboard</span>
                       </button>
 
-                      {/* Add Property Option for authorized roles */}
-                      {(currentUser.role === 'dealer' || currentUser.role === 'society_admin' || currentUser.role === 'super_admin') && (
-                        <button
-                          onClick={() => {
-                            setProfileDropdownOpen(false);
-                            if (onOpenAddProperty) onOpenAddProperty();
-                            else onNavigate('/properties/add');
-                          }}
-                          className="w-full flex items-center gap-2 px-2.5 py-2 text-emerald-700 hover:bg-emerald-50 rounded-xl font-bold transition cursor-pointer"
-                        >
-                          <PlusCircle className="w-4 h-4 text-emerald-600" />
-                          <span>Add New Property</span>
-                        </button>
-                      )}
+                      {/* Add Property Option for all authenticated users */}
+                      <button
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          if (onOpenAddProperty) onOpenAddProperty();
+                          else onNavigate('/properties/add');
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 text-emerald-700 hover:bg-emerald-50 rounded-xl font-bold transition cursor-pointer"
+                      >
+                        <PlusCircle className="w-4 h-4 text-emerald-600" />
+                        <span>Add New Property</span>
+                      </button>
 
                       {/* Profile & Settings */}
                       <button
@@ -402,8 +428,48 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
 
       {/* Mobile Drawer Menu */}
       {mobileNavOpen && (
-        <div className="md:hidden border-t border-slate-200 bg-white px-6 py-4 space-y-4 animate-in slide-in-from-top-2 duration-150 shadow-lg">
-          <nav className="flex flex-col space-y-2">
+        <div className="md:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-4 animate-in slide-in-from-top-2 duration-150 shadow-xl max-h-[85vh] overflow-y-auto">
+          {/* User Status Bar if Logged In */}
+          {!isPublicBuyer && (
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-900 text-white font-bold flex items-center justify-center text-xs">
+                    {currentUser.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 truncate max-w-[160px]">{currentUser.name}</div>
+                    <div className="text-[10px] font-semibold text-slate-500">{currentUser.phone}</div>
+                  </div>
+                </div>
+                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${roleBadgeConfig.badgeClass}`}>
+                  {roleBadgeConfig.label}
+                </span>
+              </div>
+
+              {/* Portal Shortcut CTA */}
+              <button
+                onClick={() => {
+                  setMobileNavOpen(false);
+                  const portalRoute = 
+                    currentUser.role === 'buyer' ? '/buyer/overview' :
+                    currentUser.role === 'dealer' ? '/dealer/overview' :
+                    currentUser.role === 'society_admin' ? '/society/overview' : '/admin/overview';
+                  onNavigate(portalRoute);
+                }}
+                className="w-full py-2 px-3 bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Open {roleBadgeConfig.label} Portal</span>
+              </button>
+            </div>
+          )}
+
+          {/* Core Navigation Links */}
+          <nav className="flex flex-col space-y-1">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 pb-1">
+              Marketplace & Tools
+            </div>
             {navLinks.map((link) => {
               const isActive = currentRoute === link.route;
               return (
@@ -427,32 +493,108 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({
             })}
           </nav>
 
-          {isPublicBuyer && (
-            <div className="pt-3 border-t border-slate-100 space-y-2">
+          {/* Role Switcher in Mobile Drawer */}
+          <div className="pt-3 border-t border-slate-100 space-y-2">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
+              Switch Account View
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
               <button
                 onClick={() => {
                   setMobileNavOpen(false);
                   onRoleSwitch('buyer');
                   onNavigate('/buyer/overview');
                 }}
-                className="w-full text-center py-2 text-xs font-medium text-slate-500 hover:text-blue-900 transition"
+                className={`p-2 rounded-xl text-[11px] font-bold text-left transition cursor-pointer ${
+                  currentUser.role === 'buyer'
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                    : 'bg-slate-50 hover:bg-amber-50 text-slate-700'
+                }`}
               >
-                Try Demo Account
+                🏡 Buyer
               </button>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => handleLinkClick('/login')}
-                  className="w-full py-2.5 text-center text-sm font-semibold text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50"
-                >
-                  Log In
-                </button>
-                <button
-                  onClick={() => handleLinkClick('/signup')}
-                  className="w-full py-2.5 text-center text-sm font-semibold text-white bg-blue-900 hover:bg-blue-800 rounded-xl shadow-xs"
-                >
-                  Sign Up
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  setMobileNavOpen(false);
+                  onRoleSwitch('dealer');
+                  onNavigate('/dealer/overview');
+                }}
+                className={`p-2 rounded-xl text-[11px] font-bold text-left transition cursor-pointer ${
+                  currentUser.role === 'dealer'
+                    ? 'bg-teal-100 text-teal-900 border border-teal-300'
+                    : 'bg-slate-50 hover:bg-teal-50 text-slate-700'
+                }`}
+              >
+                💼 Dealer
+              </button>
+              <button
+                onClick={() => {
+                  setMobileNavOpen(false);
+                  onRoleSwitch('society_admin');
+                  onNavigate('/society/overview');
+                }}
+                className={`p-2 rounded-xl text-[11px] font-bold text-left transition cursor-pointer ${
+                  currentUser.role === 'society_admin'
+                    ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                    : 'bg-slate-50 hover:bg-emerald-50 text-slate-700'
+                }`}
+              >
+                🏢 Society
+              </button>
+              <button
+                onClick={() => {
+                  setMobileNavOpen(false);
+                  onRoleSwitch('super_admin');
+                  onNavigate('/admin/overview');
+                }}
+                className={`p-2 rounded-xl text-[11px] font-bold text-left transition cursor-pointer ${
+                  currentUser.role === 'super_admin'
+                    ? 'bg-indigo-100 text-indigo-900 border border-indigo-300'
+                    : 'bg-slate-50 hover:bg-indigo-50 text-slate-700'
+                }`}
+              >
+                🛡️ Admin
+              </button>
+            </div>
+          </div>
+
+          {/* Public Buyer Login / Signup */}
+          {isPublicBuyer ? (
+            <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => handleLinkClick('/login')}
+                className="w-full py-2.5 text-center text-sm font-semibold text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50"
+              >
+                Log In
+              </button>
+              <button
+                onClick={() => handleLinkClick('/signup')}
+                className="w-full py-2.5 text-center text-sm font-semibold text-white bg-blue-900 hover:bg-blue-800 rounded-xl shadow-xs"
+              >
+                Sign Up
+              </button>
+            </div>
+          ) : (
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+              <button
+                onClick={() => {
+                  setMobileNavOpen(false);
+                  onNavigate('/profile');
+                }}
+                className="flex-1 py-2 text-center text-xs font-bold text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition"
+              >
+                Profile & Settings
+              </button>
+              <button
+                onClick={() => {
+                  setMobileNavOpen(false);
+                  onRoleSwitch('public_buyer');
+                  onNavigate('/');
+                }}
+                className="py-2 px-3 text-center text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition"
+              >
+                Sign Out
+              </button>
             </div>
           )}
         </div>

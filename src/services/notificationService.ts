@@ -330,6 +330,86 @@ class NotificationService {
   }
 
   /**
+   * Fetch current Google / SMTP configuration status
+   */
+  public async fetchSmtpStatus(): Promise<{
+    configured: boolean;
+    host: string;
+    port: number;
+    secure: boolean;
+    user: string;
+    from: string;
+    isGoogleSmtp: boolean;
+  }> {
+    try {
+      const res = await fetch('/api/notifications/smtp/status');
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('[Notification Service] Fetch SMTP status error:', err);
+    }
+    return {
+      configured: false,
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      user: '',
+      from: '',
+      isGoogleSmtp: true
+    };
+  }
+
+  /**
+   * Verify SMTP connection
+   */
+  public async verifySmtp(customConfig?: {
+    host?: string;
+    port?: number;
+    user?: string;
+    pass?: string;
+  }): Promise<{ ok: boolean; message: string; details?: any }> {
+    try {
+      const res = await fetch('/api/notifications/smtp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customConfig || {})
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { ok: false, message: err?.message || 'Failed to verify SMTP connection' };
+    }
+  }
+
+  /**
+   * Send a real test email via Google SMTP
+   */
+  public async sendTestEmail(recipientEmail: string, recipientName?: string): Promise<{
+    success: boolean;
+    provider: string;
+    messageId: string;
+    providerResponse: string;
+    error?: string;
+  }> {
+    try {
+      const res = await fetch('/api/notifications/smtp/test-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientEmail, recipientName })
+      });
+      return await res.json();
+    } catch (err: any) {
+      return {
+        success: false,
+        provider: 'Network/Client',
+        messageId: '',
+        providerResponse: 'CLIENT_REQUEST_FAILED',
+        error: err?.message || 'Failed to send test email'
+      };
+    }
+  }
+
+  /**
    * Run automated background scheduler checks (e.g. 3-day installment reminders)
    */
   public async runScheduledChecks(

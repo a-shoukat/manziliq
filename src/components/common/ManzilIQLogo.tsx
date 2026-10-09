@@ -264,36 +264,42 @@ export const ManzilIQLogo: React.FC<ManzilIQLogoProps> = ({
     );
   }
 
-  // Variant: Horizontal (Default Nav & Header Brand Display - Ultra-Visible)
+  // Variant: Horizontal (Default Nav & Header Brand Display - Ultra-Visible & Mobile-Responsive)
   return (
     <div 
       onClick={onClick} 
-      className={`flex items-center gap-3 group select-none ${className} ${onClick ? 'cursor-pointer' : ''}`}
+      className={`flex items-center gap-2 sm:gap-3 group select-none min-w-0 ${className} ${onClick ? 'cursor-pointer' : ''}`}
     >
       {/* Icon Emblem Container with Gold Glow Accent */}
-      <div className="shrink-0 p-1 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/80 border border-amber-300/80 shadow-xs group-hover:border-amber-400 group-hover:shadow-md transition-all">
-        {renderCrestSvg(sizeConfig.iconSize)}
+      <div className="shrink-0 p-0.5 sm:p-1 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/80 border border-amber-300/80 shadow-xs group-hover:border-amber-400 group-hover:shadow-md transition-all flex items-center justify-center">
+        {/* Render responsive size: sm on mobile, configured size on sm+ */}
+        <div className="sm:hidden">
+          {renderCrestSvg(34)}
+        </div>
+        <div className="hidden sm:block">
+          {renderCrestSvg(sizeConfig.iconSize)}
+        </div>
       </div>
 
       {/* Typography & Subtitles */}
       <div className="flex flex-col justify-center min-w-0">
-        <div className="flex items-center gap-2 leading-none">
+        <div className="flex items-center gap-1.5 sm:gap-2 leading-none">
           <div className="flex items-baseline tracking-tight font-[Outfit] font-black">
-            <span className={`${textColorManzil} text-xl sm:text-2xl tracking-tight font-black group-hover:text-amber-600 transition-colors`}>
+            <span className={`${textColorManzil} text-lg sm:text-2xl tracking-tight font-black group-hover:text-amber-600 transition-colors`}>
               MANZIL
             </span>
-            <span className="ml-1 text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-xl sm:text-2xl tracking-tight font-black">
+            <span className="ml-1 text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-lg sm:text-2xl tracking-tight font-black">
               IQ
             </span>
           </div>
 
-          <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider shadow-2xs">
+          <span className="bg-amber-500 text-slate-950 text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider shadow-2xs">
             PK
           </span>
         </div>
 
         {showTagline && (
-          <p className={`text-[10px] sm:text-[11px] ${textColorTagline} font-bold tracking-tight truncate mt-1`}>
+          <p className={`hidden sm:block text-[10px] sm:text-[11px] ${textColorTagline} font-bold tracking-tight truncate mt-0.5 sm:mt-1`}>
             Discover • Manage • Decide Smarter
           </p>
         )}

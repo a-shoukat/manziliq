@@ -146,7 +146,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
       // 3. Category filter
       if (filterCriteria.category !== 'all') {
-        const cat = (prop.category || prop.type).toLowerCase();
+        const cat = String(prop.category || prop.type || '').toLowerCase();
         if (filterCriteria.category === 'plot' && !cat.includes('plot')) return false;
         if (filterCriteria.category === 'house' && !cat.includes('house') && !cat.includes('villa')) return false;
         if (filterCriteria.category === 'commercial' && !cat.includes('commercial') && !cat.includes('plaza')) return false;
@@ -245,9 +245,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
         <div className="max-w-6xl mx-auto text-center relative z-10 space-y-7">
           
-          {/* Prominent Official MANZIL IQ Brand Crest Card */}
-          <div className="flex justify-center">
-            <ManzilIQLogo variant="hero" size="md" theme="dark" showTagline={true} />
+          {/* Trust Authority Chip */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-900/60 border border-blue-400/30 text-blue-200 text-xs font-bold backdrop-blur-md shadow-inner">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Pakistan’s Premier 100% NOC-Verified Property Portal</span>
           </div>
 
           {/* Main Display Headline */}
@@ -264,7 +265,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <div className="max-w-4xl mx-auto bg-white rounded-3xl p-4 sm:p-6 shadow-2xl border border-slate-200 text-slate-900 text-left space-y-4">
             
             {/* Category Tabs */}
-            <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+            <div className="flex overflow-x-auto pb-2 scrollbar-none items-center gap-2 border-b border-slate-200 -mx-1 px-1">
               {[
                 { id: 'all', label: 'All Inventory' },
                 { id: 'plot', label: 'Residential Plots' },
@@ -275,7 +276,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   key={tab.id}
                   type="button"
                   onClick={() => setHeroTab(tab.id as any)}
-                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition shrink-0 cursor-pointer ${
                     heroTab === tab.id
                       ? 'bg-blue-900 text-white shadow-xs'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-700'

@@ -31,7 +31,8 @@ import {
   User as UserIcon,
   Shield,
   Plus,
-  PlusCircle
+  PlusCircle,
+  X
 } from 'lucide-react';
 
 interface DashboardSidebarProps {
@@ -141,6 +142,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         heading: 'Customer Hub',
         items: [
           { label: 'Overview', route: '/buyer/overview', icon: LayoutDashboard },
+          { label: 'Post Property Listing', route: '/properties/add', icon: PlusCircle, badge: 'Sell / Rent', badgeColor: 'bg-emerald-100 text-emerald-800' },
           { label: 'My Bookings', route: '/buyer/bookings', icon: Layers, badge: '6 Stages', badgeColor: 'bg-amber-100 text-amber-900' },
           { label: 'Installments & Dues', route: '/buyer/installments', icon: CreditCard, badge: '1 Overdue', badgeColor: 'bg-rose-100 text-rose-800' },
           { label: 'Saved Wishlist', route: '/buyer/wishlist', icon: Heart },
@@ -214,6 +216,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         heading: 'Platform Super Admin',
         items: [
           { label: 'Master Overview', route: '/admin/overview', icon: LayoutDashboard },
+          { label: 'Analytics & Reports', route: '/admin/analytics', icon: TrendingUp, badge: 'Intelligence', badgeColor: 'bg-indigo-100 text-indigo-800' },
           { label: 'Add Property Listing', route: '/properties/add', icon: PlusCircle, badge: '+ New', badgeColor: 'bg-indigo-100 text-indigo-800' },
           { label: 'User & Dealer Accounts', route: '/admin/users', icon: Users, badge: 'Directory', badgeColor: 'bg-purple-100 text-purple-800' },
           { label: 'Verification Queue', route: '/admin/verification-queue', icon: ShieldCheck, badge: '2 Pending', badgeColor: 'bg-rose-100 text-rose-800' },
@@ -241,7 +244,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     if (onCloseMobile) onCloseMobile();
   };
 
-  const canAddProperty = role === 'dealer' || role === 'society_admin' || role === 'super_admin';
+  const canAddProperty = true;
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-white border-r border-slate-200">
@@ -273,6 +276,16 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         >
           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
+
+        {onCloseMobile && (
+          <button
+            onClick={onCloseMobile}
+            className="md:hidden p-1.5 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition cursor-pointer"
+            title="Close Menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Role Pill Header */}
@@ -298,7 +311,8 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             className={`w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold text-white shadow-xs transition cursor-pointer active:scale-98 ${
               role === 'super_admin' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' :
               role === 'society_admin' ? 'bg-emerald-700 hover:bg-emerald-800 shadow-emerald-200' :
-              'bg-teal-700 hover:bg-teal-800 shadow-teal-200'
+              role === 'dealer' ? 'bg-teal-700 hover:bg-teal-800 shadow-teal-200' :
+              'bg-emerald-700 hover:bg-emerald-800 shadow-emerald-200'
             }`}
             title="Add Property Listing"
           >
