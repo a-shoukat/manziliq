@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/auth';
-import { sendSms } from '../../lib/sms';
+import { sendWhatsApp } from '../../lib/whatsapp';
 import {
   allSocietyIds,
   allUserIds,
@@ -25,9 +25,8 @@ export default function Broadcast({ onNavigate }: { onNavigate: (p: string) => v
   const [tBody, setTBody] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const [smsTo, setSmsTo] = useState('');
-  const [smsBody, setSmsBody] = useState('');
-  const [smsSending, setSmsSending] = useState(false);
+  const [waTo, setWaTo] = useState('');
+  const [waSending, setWaSending] = useState(false);
 
   const isSociety = profile?.role === 'society_admin';
   const isAdmin = profile?.role === 'super_admin';
@@ -110,31 +109,28 @@ export default function Broadcast({ onNavigate }: { onNavigate: (p: string) => v
       {msg && <div className="notice" style={{ marginBottom: 12 }}>{msg}</div>}
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <h3>📱 SMS test (Twilio)</h3>
-        <p className="muted small">Send a real SMS via Twilio. Trial accounts can only text verified numbers — use your own verified number for testing, in +92 format.</p>
+        <h3>💬 WhatsApp test</h3>
+        <p className="muted small">Send a test WhatsApp message via Meta Cloud API (free tier). Use the hello_world template — your number must be registered as a test recipient in the Meta dashboard.</p>
         <div className="form-row">
-          <label>To (e.g. +923001234567)
-            <input value={smsTo} onChange={(e) => setSmsTo(e.target.value)} placeholder="+92…" />
-          </label>
-          <label>Message
-            <input value={smsBody} onChange={(e) => setSmsBody(e.target.value)} placeholder="Test message from ManzilIQ" maxLength={160} />
+          <label>To (digits only, e.g. 923001234567)
+            <input value={waTo} onChange={(e) => setWaTo(e.target.value)} placeholder="92300…" />
           </label>
         </div>
         <button
           className="btn small"
-          disabled={smsSending}
+          disabled={waSending}
           onClick={async () => {
-            if (!smsTo.trim() || !smsBody.trim()) {
-              setMsg('Enter a phone number and message first.');
+            if (!waTo.trim()) {
+              setMsg('Enter a phone number first.');
               return;
             }
-            setSmsSending(true);
-            const r = await sendSms(smsTo.trim(), smsBody.trim());
-            setMsg(r.ok ? 'SMS sent! Check the phone.' : `SMS failed: ${r.error}`);
-            setSmsSending(false);
+            setWaSending(true);
+            const r = await sendWhatsApp(waTo.trim(), { template: 'hello_world' });
+            setMsg(r.ok ? 'WhatsApp message sent! Check the phone.' : `WhatsApp failed: ${r.error}`);
+            setWaSending(false);
           }}
         >
-          {smsSending ? 'Sending…' : 'Send test SMS'}
+          {waSending ? 'Sending…' : 'Send test WhatsApp'}
         </button>
       </div>
 
