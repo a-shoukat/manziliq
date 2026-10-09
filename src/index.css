@@ -142,6 +142,45 @@ input:focus {
   color: #86efac;
 }
 
+.badge.warn {
+  background: #7c2d12;
+  color: #fed7aa;
+}
+
+.card.wide {
+  max-width: 560px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.topbar h1 {
+  margin: 0;
+}
+
+.btn.small {
+  width: auto;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  font-size: 15px;
+  border-radius: 8px;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
 .email {
   font-size: 16px;
   font-weight: 600;

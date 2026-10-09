@@ -1,21 +1,15 @@
-# ManzilIQ — Prototype v1
+# ManzilIQ — Module-wise Versions
 
-First prototype: a clean login form connected to the Supabase database.
-This lives on the `prototype-v1` branch (tag `v1-prototype`) so the main
-project stays untouched.
-
-## What's inside
-
-- Login form (email + password) with sign-in and sign-up modes
-- Supabase Auth for authentication (backed by the Supabase Postgres database)
-- Session persistence — stays logged in on refresh
-- "Database connected" state after successful sign-in
+Prototype built module by module. Each version is cumulative — it contains
+everything from the previous versions plus one new module. The `main` branch
+is untouched; all versions live as tags on this line.
 
 ## Run it
 
 ```bash
 npm install
-cp .env.example .env   # then add your Supabase URL + anon key
+cp .env.example .env   # add your Supabase URL + anon key
+# In Supabase SQL Editor, run supabase/schema.sql (safe to re-run)
 npm run dev
 ```
 
@@ -23,6 +17,18 @@ Open http://localhost:5173
 
 ## Versions
 
-| Version | Branch / Tag | Description |
-| ------- | ------------ | ----------- |
-| v1-prototype | `prototype-v1` / `v1-prototype` | Login form + Supabase database connection |
+| Tag | Module added | What's inside |
+| --- | ------------ | ------------- |
+| `v1-prototype` | — | Login form + Supabase connection, session persistence |
+| `v2-auth` | 1 · Authentication | Sign up with role (buyer/dealer/society_admin/super_admin), sign in, protected routes, role-based dashboard, `profiles` table + RLS |
+| `v3-marketplace` | 2 · Property Marketplace | _next_ |
+| `v4-society` | 3 · Society Management | _planned_ |
+| `v5-dealer` | 4 · Dealer Management | _planned_ |
+| `v6-maps` | 5 · Interactive Maps | _planned_ |
+| `v7-booking` | 6 · Booking | _planned_ |
+| `v8-payment` | 7 · Payment (simulated) | _planned_ |
+| `v9-ai-price` | 8 · AI Price Prediction | _planned_ |
+| `v10-notifications` | 9 · Notifications | _planned_ |
+| `v11-admin` | 10 · Admin Panel | _planned_ |
+| `v12-legal` | 11 · Legal Documentation | _planned_ |
+| `v13-analytics` | 12 · Analytics & Reporting | _planned_ |
