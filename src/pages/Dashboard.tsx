@@ -72,6 +72,15 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
           </div>
         )}
 
+        <div className="link-row">
+          <button className="btn small" onClick={() => onNavigate('marketplace')}>
+            Browse marketplace
+          </button>
+          <button className="btn secondary small" onClick={() => onNavigate('compare')}>
+            Compare plots
+          </button>
+        </div>
+
         <div className="notice" style={{ marginTop: 16 }}>
           Module 1 of 12: Authentication + Registration & Verification (all roles).
         </div>

@@ -42,3 +42,27 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   society_admin: 'Society Admin',
   super_admin: 'Super Admin',
 };
+
+export type PropertyCategory = 'residential' | 'commercial';
+export type PropertyPurpose = 'sale' | 'rent';
+export type PropertyStatus = 'available' | 'reserved' | 'sold';
+
+export interface Property {
+  id: string;
+  title: string;
+  city: string;
+  area: string | null;
+  society_name: string | null;
+  block: string | null;
+  plot_size_marla: number;
+  category: PropertyCategory;
+  purpose: PropertyPurpose;
+  price: number;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  description: string | null;
+  image_url: string | null;
+  status: PropertyStatus;
+  owner_id: string | null;
+  created_at: string;
+}

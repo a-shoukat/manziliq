@@ -21,7 +21,7 @@ Open http://localhost:5173
 | --- | ------------ | ------------- |
 | `v1-prototype` | — | Login form + Supabase connection, session persistence |
 | `v2-auth` | 1 · Authentication | Sign up with role (buyer/dealer/society_admin/super_admin), sign in, protected routes, role-based dashboard, `profiles` table + RLS |
-| `v3-marketplace` | 2 · Property Marketplace | _next_ |
+| `v3-marketplace` | 2 · Property Marketplace | Search by city/area, filters (society, block/size, price range, Res/Com, status), sort, property detail, add property (dealer/society), plot comparison (up to 3, side-by-side, saved) |
 | `v4-society` | 3 · Society Management | _planned_ |
 | `v5-dealer` | 4 · Dealer Management | _planned_ |
 | `v6-maps` | 5 · Interactive Maps | _planned_ |

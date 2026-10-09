@@ -86,3 +86,44 @@ drop policy if exists "documents_owner_rw" on storage.objects;
 create policy "documents_owner_rw" on storage.objects
   for all using (bucket_id = 'documents' and auth.uid()::text = (storage.foldername(name))[1])
   with check (bucket_id = 'documents' and auth.uid()::text = (storage.foldername(name))[1]);
+
+-- ============ v3-marketplace: properties ============
+
+create table if not exists public.properties (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  city text not null,
+  area text,
+  society_name text,
+  block text,
+  plot_size_marla numeric not null default 5,
+  category text not null default 'residential' check (category in ('residential', 'commercial')),
+  purpose text not null default 'sale' check (purpose in ('sale', 'rent')),
+  price numeric not null default 0,
+  bedrooms int,
+  bathrooms int,
+  description text,
+  image_url text,
+  status text not null default 'available'
+    check (status in ('available', 'reserved', 'sold')),
+  owner_id uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.properties enable row level security;
+
+drop policy if exists "properties_public_read" on public.properties;
+create policy "properties_public_read" on public.properties
+  for select using (true);
+
+drop policy if exists "properties_owner_write" on public.properties;
+create policy "properties_owner_write" on public.properties
+  for insert with check (auth.uid() = owner_id);
+
+drop policy if exists "properties_owner_update" on public.properties;
+create policy "properties_owner_update" on public.properties
+  for update using (auth.uid() = owner_id);
+
+drop policy if exists "properties_owner_delete" on public.properties;
+create policy "properties_owner_delete" on public.properties
+  for delete using (auth.uid() = owner_id);
