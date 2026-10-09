@@ -244,3 +244,40 @@ create policy "lead_act_owner" on public.lead_activities
   ) with check (
     exists (select 1 from public.leads l where l.id = lead_id and l.dealer_id = auth.uid())
   );
+
+-- ============ v7-booking: bookings ============
+
+create table if not exists public.bookings (
+  id uuid primary key default gen_random_uuid(),
+  reference_no text unique not null,
+  plot_id uuid references public.plots(id) on delete set null,
+  customer_id uuid references public.profiles(id) on delete set null,
+  dealer_id uuid references public.profiles(id) on delete set null,
+  society_id uuid references public.profiles(id) on delete set null,
+  channel text not null default 'direct' check (channel in ('direct', 'dealer')),
+  token_amount numeric not null default 0,
+  installment_plan text,
+  status text not null default 'pending'
+    check (status in ('pending', 'approved', 'rejected', 'token_paid', 'completed', 'cancelled')),
+  created_at timestamptz not null default now()
+);
+
+alter table public.bookings enable row level security;
+
+drop policy if exists "bookings_read" on public.bookings;
+create policy "bookings_read" on public.bookings
+  for select using (
+    auth.uid() = customer_id or auth.uid() = dealer_id or auth.uid() = society_id
+    or exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
+  );
+
+drop policy if exists "bookings_customer_insert" on public.bookings;
+create policy "bookings_customer_insert" on public.bookings
+  for insert with check (auth.uid() = customer_id);
+
+drop policy if exists "bookings_manage_update" on public.bookings;
+create policy "bookings_manage_update" on public.bookings
+  for update using (
+    auth.uid() = society_id or auth.uid() = dealer_id
+    or exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
+  );

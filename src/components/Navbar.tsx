@@ -41,6 +41,9 @@ export default function Navbar({
       <div className="nav-links">
         {link('marketplace', 'Marketplace')}
         {link('map-view', 'Map')}
+        {profile?.role === 'buyer' && link('book-plot', 'Book')}
+        {(profile?.role === 'society_admin' || profile?.role === 'super_admin') &&
+          link('society-bookings', 'Bookings')}
         {link('compare', 'Compare', items.length || undefined)}
         {canAdd && link('add-property', '+ Add')}
         {isSociety && link('society', 'Society')}

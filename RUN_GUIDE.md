@@ -55,6 +55,7 @@ Browser mein kholo: **http://localhost:5173**
 | v4-society | `v4-society` | + Society Management: plot inventory (CSV upload, manual entry, edit/delete), interactive plot map (color-coded, zoom), dealer management (join requests, lot assignment, commission, revoke, performance) |
 | v5-dealer | `v5-dealer` | + Dealer Management: society discovery & join, lot view (showing-to-client, release), leads (call/visit log, follow-up, Hot/Warm/Cold), 6-stage deal pipeline |
 | v6-maps | `v6-maps` | + Interactive Maps: customer map view (color-coded, click details, filters, zoom, embed code) |
+| v7-booking | `v7-booking` | + Booking: 5-step booking flow (token payment simulated, reference no.), society/admin approvals (reserve → token → sold) |
 
 ## Accounts kaise banayein (v2-auth)
 

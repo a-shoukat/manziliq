@@ -150,3 +150,29 @@ export interface SocietySummary {
   plots_available: number;
   plots_total: number;
 }
+
+export type BookingChannel = 'direct' | 'dealer';
+export type BookingStatus = 'pending' | 'approved' | 'rejected' | 'token_paid' | 'completed' | 'cancelled';
+
+export interface Booking {
+  id: string;
+  reference_no: string;
+  plot_id: string | null;
+  customer_id: string | null;
+  dealer_id: string | null;
+  society_id: string | null;
+  channel: BookingChannel;
+  token_amount: number;
+  installment_plan: string | null;
+  status: BookingStatus;
+  created_at: string;
+  plot_label?: string;
+  customer_email?: string;
+}
+
+export const INSTALLMENT_PLANS = [
+  'Lump sum (full payment)',
+  '1-year plan',
+  '3-year plan',
+  '5-year plan',
+];

@@ -3,16 +3,19 @@ import { ROLE_LABELS } from '../types';
 
 const ROLE_HOME: Record<string, { text: string; links: { label: string; page: string }[] }> = {
   buyer: {
-    text: 'Search and browse properties. Marketplace arrives in v3.',
-    links: [],
+    text: 'Search, compare and book plots.',
+    links: [
+      { label: 'Book a plot', page: 'book-plot' },
+      { label: 'My bookings', page: 'my-bookings' },
+    ],
   },
   dealer: {
     text: 'Discover societies, manage your lots and customer leads.',
     links: [{ label: 'Dealer portal', page: 'dealer' }],
   },
   society_admin: {
-    text: 'Your society is under verification. After approval you can manage plot inventory.',
-    links: [],
+    text: 'Manage inventory, dealers and booking requests.',
+    links: [{ label: 'Booking requests', page: 'society-bookings' }],
   },
   super_admin: {
     text: 'Review pending society & dealer registrations.',

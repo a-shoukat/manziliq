@@ -18,6 +18,9 @@ import Discover from './pages/dealer/Discover';
 import MyLots from './pages/dealer/MyLots';
 import Leads from './pages/dealer/Leads';
 import MapView from './pages/MapView';
+import BookPlot from './pages/booking/BookPlot';
+import MyBookings from './pages/booking/MyBookings';
+import BookingsAdmin from './pages/booking/BookingsAdmin';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
@@ -116,6 +119,22 @@ function Shell() {
       ) : page === 'map-view' ? (
         <ProtectedRoute onNavigate={navigate}>
           <MapView onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'book-plot' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['buyer', 'super_admin']}>
+          <BookPlot onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'my-bookings' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['buyer', 'super_admin']}>
+          <MyBookings onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'society-bookings' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
+          <BookingsAdmin onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'admin-bookings' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['super_admin']}>
+          <BookingsAdmin onNavigate={navigate} admin />
         </ProtectedRoute>
       ) : (
         <ProtectedRoute onNavigate={navigate}>

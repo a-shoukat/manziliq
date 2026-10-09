@@ -25,6 +25,7 @@ Open http://localhost:5173
 | `v4-society` | 3 · Society Management | Plot inventory: CSV upload, manual entry, block grouping, edit/delete/block; interactive plot map (color-coded, block switcher, zoom, click details); dealer management: join requests, lot assignment with commission & expiry, revoke, performance, lot history |
 | `v5-dealer` | 4 · Dealer Management | Society discovery & join (browse, request, track status); lot view (assigned plots only, showing-to-client, release); lead management (add, call/visit log, follow-up reminders, Hot/Warm/Cold, assign plot); 6-stage deal pipeline |
 | `v6-maps` | 5 · Interactive Maps | Customer map view: society layout map, click plot → details popup, color-coded availability, filters (block/size/status), zoom, embeddable map snippet |
+| `v7-booking` | 6 · Booking | Booking flow (plot select, direct/via dealer, token payment simulated, installment plan, confirmation + reference no.); society/admin approvals (approve → reserve, token confirm, transfer → sold); my bookings |
 | `v4-society` | 3 · Society Management | _planned_ |
 | `v5-dealer` | 4 · Dealer Management | _planned_ |
 | `v6-maps` | 5 · Interactive Maps | _planned_ |
