@@ -65,6 +65,7 @@ export default function Navbar({
         {isDealer && link('dealer', 'Dealer')}
         {link('inbox', '🔔 Inbox', unread || undefined)}
         {link('documents', 'Documents')}
+        {link('market-trends', 'Trends')}
         {(profile?.role === 'society_admin' || profile?.role === 'super_admin') &&
           link('broadcast', 'Broadcast')}
         {profile?.role === 'super_admin' && link('admin', 'Admin')}

@@ -31,6 +31,10 @@ import Disputes from './pages/admin/Disputes';
 import LegalTemplates from './pages/admin/LegalTemplates';
 import PlatformAnalytics from './pages/admin/PlatformAnalytics';
 import Documents from './pages/legal/Documents';
+import SocietyAnalytics from './pages/analytics/SocietyAnalytics';
+import DealerAnalytics from './pages/analytics/DealerAnalytics';
+import MarketTrends from './pages/analytics/MarketTrends';
+import CustomerActivity from './pages/analytics/CustomerActivity';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
@@ -185,6 +189,22 @@ function Shell() {
       ) : page === 'documents' ? (
         <ProtectedRoute onNavigate={navigate}>
           <Documents onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'society-analytics' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
+          <SocietyAnalytics onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'dealer-analytics' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['dealer']}>
+          <DealerAnalytics onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'market-trends' ? (
+        <ProtectedRoute onNavigate={navigate}>
+          <MarketTrends onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'my-activity' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['buyer']}>
+          <CustomerActivity onNavigate={navigate} />
         </ProtectedRoute>
       ) : (
         <ProtectedRoute onNavigate={navigate}>

@@ -61,6 +61,7 @@ Browser mein kholo: **http://localhost:5173**
 | v10-notifications | `v10-notifications` | + Notifications: inbox + triggers + broadcast + templates |
 | v11-admin | `v11-admin` | + Admin Panel: disputes, legal templates, platform analytics |
 | v12-legal | `v12-legal` | + Legal Documentation: auto-generated documents, locker, audit |
+| v13-analytics | `v13-analytics` | + Analytics & Reporting: dashboards, trends, CSV reports |
 
 ## Accounts kaise banayein (v2-auth)
 

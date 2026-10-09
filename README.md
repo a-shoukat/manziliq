@@ -31,6 +31,7 @@ Open http://localhost:5173
 | `v10-notifications` | 9 · Notifications | In-app inbox with unread badge, trigger events (booking/payment/lot/transfer), due-date & late alerts, broadcast (society→customers/dealers, admin→societies/all), message templates, scheduled announcements |
 | `v11-admin` | 10 · Admin Panel | Dispute management (file, mediate, freeze plot, resolution notice, close/escalate), legal template management (edit/preview/version/publish), platform analytics (societies, dealers, customers, GMV, plots, growth) |
 | `v12-legal` | 11 · Legal Documentation | Auto-generated documents (allotment on approval, token receipt, installment receipts, transfer deed + NOC on completion, cancellation letter); auto-fill from DB, society letterhead, watermark, signature placeholders, version history, expiry tracking; customer locker, society bulk print, dealer copies, admin audit trail |
+| `v13-analytics` | 12 · Analytics & Reporting | Society sales analytics (plots/bookings by status, revenue trend, block sell-through, payments CSV export); dealer performance (lots, leads by temperature, pipeline distribution, conversion rate); AI market trends (PKR/marla by city/category, trend direction); customer activity timeline |
 | `v4-society` | 3 · Society Management | _planned_ |
 | `v5-dealer` | 4 · Dealer Management | _planned_ |
 | `v6-maps` | 5 · Interactive Maps | _planned_ |
@@ -40,4 +41,5 @@ Open http://localhost:5173
 | `v10-notifications` | 9 · Notifications | _planned_ |
 | `v11-admin` | 10 · Admin Panel | Dispute management, legal templates, platform analytics |
 | `v12-legal` | 11 · Legal Documentation | Auto-generated documents + locker + audit trail |
-| `v13-analytics` | 12 · Analytics & Reporting | _planned_ |
+| `v13-analytics` | 12 · Analytics & Reporting | Society/dealer/market/customer analytics + CSV reports |
+| `v14-ai-assistance` | 13 · AI Assistance | _planned_ |

@@ -9,6 +9,7 @@ const ROLE_HOME: Record<string, { text: string; links: { label: string; page: st
       { label: 'My bookings', page: 'my-bookings' },
       { label: 'My payments', page: 'my-payments' },
       { label: 'Documents', page: 'documents' },
+      { label: 'My activity', page: 'my-activity' },
     ],
   },
   dealer: {
@@ -16,6 +17,7 @@ const ROLE_HOME: Record<string, { text: string; links: { label: string; page: st
     links: [
       { label: 'Dealer portal', page: 'dealer' },
       { label: 'Documents', page: 'documents' },
+      { label: 'My performance', page: 'dealer-analytics' },
     ],
   },
   society_admin: {
@@ -24,6 +26,7 @@ const ROLE_HOME: Record<string, { text: string; links: { label: string; page: st
       { label: 'Booking requests', page: 'society-bookings' },
       { label: 'Financials', page: 'society-financials' },
       { label: 'Documents', page: 'documents' },
+      { label: 'Sales analytics', page: 'society-analytics' },
     ],
   },
   super_admin: {
