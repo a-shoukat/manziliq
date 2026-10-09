@@ -202,3 +202,45 @@ create policy "dr_read" on public.dealer_requests
 drop policy if exists "dr_society_update" on public.dealer_requests;
 create policy "dr_society_update" on public.dealer_requests
   for update using (auth.uid() = society_id);
+
+-- ============ v5-dealer: leads, activities, plot showing flag ============
+
+alter table public.plots add column if not exists showing_client text;
+
+create table if not exists public.leads (
+  id uuid primary key default gen_random_uuid(),
+  dealer_id uuid not null references public.profiles(id) on delete cascade,
+  customer_name text not null,
+  phone text,
+  email text,
+  status text not null default 'new'
+    check (status in ('new', 'hot', 'warm', 'cold', 'converted', 'lost')),
+  pipeline_stage int not null default 1 check (pipeline_stage between 1 and 6),
+  plot_id uuid references public.plots(id) on delete set null,
+  follow_up_date date,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.lead_activities (
+  id uuid primary key default gen_random_uuid(),
+  lead_id uuid not null references public.leads(id) on delete cascade,
+  activity_type text not null default 'note'
+    check (activity_type in ('call', 'visit', 'note', 'follow_up')),
+  details text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.leads enable row level security;
+alter table public.lead_activities enable row level security;
+
+drop policy if exists "leads_owner" on public.leads;
+create policy "leads_owner" on public.leads
+  for all using (auth.uid() = dealer_id) with check (auth.uid() = dealer_id);
+
+drop policy if exists "lead_act_owner" on public.lead_activities;
+create policy "lead_act_owner" on public.lead_activities
+  for all using (
+    exists (select 1 from public.leads l where l.id = lead_id and l.dealer_id = auth.uid())
+  ) with check (
+    exists (select 1 from public.leads l where l.id = lead_id and l.dealer_id = auth.uid())
+  );

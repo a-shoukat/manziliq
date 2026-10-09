@@ -23,6 +23,7 @@ Open http://localhost:5173
 | `v2-auth` | 1 · Authentication | Sign up with role (buyer/dealer/society_admin/super_admin), sign in, protected routes, role-based dashboard, `profiles` table + RLS |
 | `v3-marketplace` | 2 · Property Marketplace | Search by city/area, filters (society, block/size, price range, Res/Com, status), sort, property detail, add property (dealer/society), plot comparison (up to 3, side-by-side, saved) |
 | `v4-society` | 3 · Society Management | Plot inventory: CSV upload, manual entry, block grouping, edit/delete/block; interactive plot map (color-coded, block switcher, zoom, click details); dealer management: join requests, lot assignment with commission & expiry, revoke, performance, lot history |
+| `v5-dealer` | 4 · Dealer Management | Society discovery & join (browse, request, track status); lot view (assigned plots only, showing-to-client, release); lead management (add, call/visit log, follow-up reminders, Hot/Warm/Cold, assign plot); 6-stage deal pipeline |
 | `v4-society` | 3 · Society Management | _planned_ |
 | `v5-dealer` | 4 · Dealer Management | _planned_ |
 | `v6-maps` | 5 · Interactive Maps | _planned_ |

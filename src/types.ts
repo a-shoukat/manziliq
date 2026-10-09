@@ -79,6 +79,7 @@ export interface Plot {
   base_price: number;
   status: PlotStatus;
   lot_id: string | null;
+  showing_client: string | null;
   created_at: string;
 }
 
@@ -107,4 +108,45 @@ export interface DealerRequest {
   dealer_email?: string;
   firm_name?: string | null;
   license_no?: string | null;
+}
+
+export type LeadStatus = 'new' | 'hot' | 'warm' | 'cold' | 'converted' | 'lost';
+
+export interface Lead {
+  id: string;
+  dealer_id: string;
+  customer_name: string;
+  phone: string | null;
+  email: string | null;
+  status: LeadStatus;
+  pipeline_stage: number;
+  plot_id: string | null;
+  follow_up_date: string | null;
+  created_at: string;
+  plot_label?: string;
+}
+
+export interface LeadActivity {
+  id: string;
+  lead_id: string;
+  activity_type: 'call' | 'visit' | 'note' | 'follow_up';
+  details: string;
+  created_at: string;
+}
+
+export const PIPELINE_STAGES = [
+  'Inquiry received',
+  'Site visit scheduled',
+  'Token amount received',
+  'Agreement signed',
+  'Full payment complete',
+  'Transfer request sent',
+];
+
+export interface SocietySummary {
+  id: string;
+  name: string;
+  email: string;
+  plots_available: number;
+  plots_total: number;
 }

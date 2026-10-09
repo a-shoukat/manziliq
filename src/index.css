@@ -742,6 +742,48 @@ textarea {
   color: #38bdf8;
 }
 
+/* ---- v5: dealer portal ---- */
+
+.pipeline {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0 4px;
+}
+
+.pipe-stage {
+  flex: 1;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.pipe-stage.done {
+  background: #14532d;
+  border-color: #16a34a;
+  color: #86efac;
+}
+
+.activity {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid #1e293b;
+  font-size: 14px;
+}
+
+.warn-box {
+  background: #451a03 !important;
+  color: #fdba74 !important;
+  border: 1px solid #d97706;
+}
+
 .email {
   font-size: 16px;
   font-weight: 600;

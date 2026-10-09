@@ -30,6 +30,9 @@ export default function Navbar({
   const isSociety =
     profile?.role === 'society_admin' || profile?.role === 'super_admin';
 
+  const isDealer =
+    profile?.role === 'dealer' || profile?.role === 'super_admin';
+
   return (
     <nav className="navbar">
       <button className="nav-brand" onClick={() => onNavigate('dashboard')}>
@@ -40,6 +43,7 @@ export default function Navbar({
         {link('compare', 'Compare', items.length || undefined)}
         {canAdd && link('add-property', '+ Add')}
         {isSociety && link('society', 'Society')}
+        {isDealer && link('dealer', 'Dealer')}
         {profile?.role === 'super_admin' &&
           link('admin-verification', 'Verification')}
         <button

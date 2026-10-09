@@ -7,8 +7,8 @@ const ROLE_HOME: Record<string, { text: string; links: { label: string; page: st
     links: [],
   },
   dealer: {
-    text: 'Your account is under verification. After approval you can discover societies and manage leads.',
-    links: [],
+    text: 'Discover societies, manage your lots and customer leads.',
+    links: [{ label: 'Dealer portal', page: 'dealer' }],
   },
   society_admin: {
     text: 'Your society is under verification. After approval you can manage plot inventory.',

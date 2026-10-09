@@ -13,6 +13,10 @@ import SocietyHub from './pages/society/SocietyHub';
 import Inventory from './pages/society/Inventory';
 import PlotMap from './pages/society/PlotMap';
 import Dealers from './pages/society/Dealers';
+import DealerHub from './pages/dealer/DealerHub';
+import Discover from './pages/dealer/Discover';
+import MyLots from './pages/dealer/MyLots';
+import Leads from './pages/dealer/Leads';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
@@ -91,6 +95,22 @@ function Shell() {
       ) : page === 'society-dealers' ? (
         <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
           <Dealers onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'dealer' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['dealer', 'super_admin']}>
+          <DealerHub onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'dealer-discover' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['dealer', 'super_admin']}>
+          <Discover onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'dealer-lots' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['dealer', 'super_admin']}>
+          <MyLots onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'dealer-leads' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['dealer', 'super_admin']}>
+          <Leads onNavigate={navigate} />
         </ProtectedRoute>
       ) : (
         <ProtectedRoute onNavigate={navigate}>
