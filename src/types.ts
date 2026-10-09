@@ -196,12 +196,15 @@ export interface Payment {
   amount: number;
   method: PaymentMethod;
   proof_url: string | null;
-  status: 'pending' | 'confirmed';
+  status: 'pending' | 'confirmed' | 'rejected';
   due_date: string | null;
   paid_at: string | null;
   late_fee: number;
   receipt_no: string | null;
   label: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+  rejection_reason: string | null;
   created_at: string;
   booking_ref?: string;
 }

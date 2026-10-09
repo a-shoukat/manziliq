@@ -17,6 +17,7 @@ import DealerHub from './pages/dealer/DealerHub';
 import Discover from './pages/dealer/Discover';
 import MyLots from './pages/dealer/MyLots';
 import Leads from './pages/dealer/Leads';
+import VerifyPayments from './pages/dealer/VerifyPayments';
 import MapView from './pages/MapView';
 import BookPlot from './pages/booking/BookPlot';
 import MyBookings from './pages/booking/MyBookings';
@@ -131,6 +132,10 @@ function Shell() {
       ) : page === 'dealer-leads' ? (
         <ProtectedRoute onNavigate={navigate} allowedRoles={['dealer', 'super_admin']}>
           <Leads onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'dealer-verify-payments' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['dealer', 'super_admin']}>
+          <VerifyPayments onNavigate={navigate} />
         </ProtectedRoute>
       ) : page === 'map-view' ? (
         <ProtectedRoute onNavigate={navigate}>

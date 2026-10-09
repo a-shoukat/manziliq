@@ -5,11 +5,9 @@ import { formatPrice } from '../../lib/properties';
 import type { Payment, PaymentMethod } from '../../types';
 
 const METHODS: { id: PaymentMethod; label: string }[] = [
-  { id: 'jazzcash', label: 'JazzCash' },
-  { id: 'easypaisa', label: 'EasyPaisa' },
-  { id: 'bank', label: 'Bank transfer (proof upload)' },
-  { id: 'cash', label: 'Cash (manual)' },
-  { id: 'cheque', label: 'Cheque (manual)' },
+  { id: 'bank', label: 'Bank transfer (receipt upload)' },
+  { id: 'cash', label: 'Cash (receipt from office)' },
+  { id: 'cheque', label: 'Cheque' },
 ];
 
 /** WBS: Payment & Financial System — customer side (tracking + receipts) */
@@ -18,7 +16,7 @@ export default function MyPayments({ onNavigate }: { onNavigate: (p: string) => 
   const [list, setList] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState<Payment | null>(null);
-  const [method, setMethod] = useState<PaymentMethod>('jazzcash');
+  const [method, setMethod] = useState<PaymentMethod>('bank');
   const [proof, setProof] = useState<File | null>(null);
   const [receipt, setReceipt] = useState<Payment | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -43,12 +41,8 @@ export default function MyPayments({ onNavigate }: { onNavigate: (p: string) => 
   const doPay = async () => {
     if (!paying) return;
     try {
-      await payInstallment(paying, method, method === 'bank' ? proof : null);
-      setMsg(
-        method === 'cash' || method === 'cheque'
-          ? 'Recorded — society will confirm on receipt.'
-          : 'Payment confirmed.',
-      );
+      await payInstallment(paying, method, proof);
+      setMsg('Receipt submitted — society/dealer will verify it, then it will show as confirmed.');
       setPaying(null);
       setProof(null);
       load();
@@ -92,16 +86,24 @@ export default function MyPayments({ onNavigate }: { onNavigate: (p: string) => 
                     <td>{formatPrice(p.amount)}</td>
                     <td>{late > 0 ? formatPrice(late) : '—'}</td>
                     <td>
-                      <span className={`badge ${p.status === 'confirmed' ? 'ok' : 'warn'}`}>
-                        {p.status}
+                      <span className={`badge ${p.status === 'confirmed' ? 'ok' : p.status === 'rejected' ? 'bad' : 'warn'}`}>
+                        {p.status === 'pending' && p.paid_at ? 'awaiting verification' : p.status}
                       </span>
+                      {p.status === 'rejected' && p.rejection_reason && (
+                        <div className="muted small">{p.rejection_reason}</div>
+                      )}
                     </td>
                     <td className="row-actions">
-                      {p.status === 'pending' && (
-                        <button className="link inline" onClick={() => setPaying(p)}>Pay</button>
-                      )}
+                      {(p.status === 'pending' && !p.paid_at) || p.status === 'rejected' ? (
+                        <button className="link inline" onClick={() => setPaying(p)}>
+                          {p.status === 'rejected' ? 'Resubmit' : 'Pay'}
+                        </button>
+                      ) : null}
                       {p.status === 'confirmed' && (
                         <button className="link inline" onClick={() => setReceipt(p)}>Receipt</button>
+                      )}
+                      {p.proof_url && (
+                        <a className="link inline" href={p.proof_url} target="_blank" rel="noreferrer">Proof</a>
                       )}
                     </td>
                   </tr>
@@ -123,13 +125,20 @@ export default function MyPayments({ onNavigate }: { onNavigate: (p: string) => 
               </select>
             </label>
             {method === 'bank' && (
-              <label>Transfer proof (upload)
+              <label>Transfer receipt / screenshot (required)
                 <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setProof(e.target.files?.[0] ?? null)} />
               </label>
             )}
-            <div className="notice" style={{ marginBottom: 12 }}>Demo mode — simulated payment.</div>
+            {(method === 'cash' || method === 'cheque') && (
+              <label>Receipt photo (optional)
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setProof(e.target.files?.[0] ?? null)} />
+              </label>
+            )}
+            <div className="notice" style={{ marginBottom: 12 }}>
+              Submit your receipt — the society/dealer will verify it before the payment is confirmed.
+            </div>
             <div className="link-row">
-              <button className="btn small" onClick={doPay}>Confirm payment</button>
+              <button className="btn small" onClick={doPay}>Submit receipt</button>
               <button className="btn secondary small" onClick={() => setPaying(null)}>Cancel</button>
             </div>
           </div>

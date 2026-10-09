@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import {
-  confirmPayment,
   deletePlan,
   fetchPlans,
+  fetchPendingVerifications,
   fetchSocietyPayments,
   financialSummary,
   savePlan,
+  verifyPayment,
   type FinancialSummary,
 } from '../../lib/payment';
+import { useAuth } from '../../lib/auth';
 import { formatPrice } from '../../lib/properties';
 import type { Payment } from '../../types';
 import { useSocietyId } from '../society/SocietyHub';
@@ -15,10 +17,14 @@ import { useSocietyId } from '../society/SocietyHub';
 /** WBS: Payment & Financial System — society side (plans, tracking, reporting) */
 export default function SocietyFinancials({ onNavigate }: { onNavigate: (p: string) => void }) {
   const { societyId, societies, setSocietyId } = useSocietyId();
+  const { session } = useAuth();
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [queue, setQueue] = useState<Payment[]>([]);
   const [plans, setPlans] = useState<Awaited<ReturnType<typeof fetchPlans>>>([]);
   const [loading, setLoading] = useState(true);
+  const [rejecting, setRejecting] = useState<Payment | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const [pName, setPName] = useState('');
   const [pMonths, setPMonths] = useState('12');
@@ -26,14 +32,16 @@ export default function SocietyFinancials({ onNavigate }: { onNavigate: (p: stri
 
   const load = async (sid: string) => {
     setLoading(true);
-    const [s, p, pl] = await Promise.all([
+    const [s, p, pl, q] = await Promise.all([
       financialSummary(sid),
       fetchSocietyPayments(sid),
       fetchPlans(sid),
+      fetchPendingVerifications(sid),
     ]);
     setSummary(s);
     setPayments(p);
     setPlans(pl);
+    setQueue(q);
     setLoading(false);
   };
 
@@ -130,6 +138,83 @@ export default function SocietyFinancials({ onNavigate }: { onNavigate: (p: stri
             {plans.length === 0 && <p className="muted small">No custom plans — defaults apply (20% down).</p>}
           </div>
 
+          <h3>🧾 Receipt verification queue</h3>
+          {queue.length === 0 ? (
+            <p className="muted small">No receipts awaiting verification.</p>
+          ) : (
+            <div className="table-wrap" style={{ marginBottom: 16 }}>
+              <table className="data-table">
+                <thead><tr><th>Booking</th><th>Label</th><th>Amount</th><th>Method</th><th>Submitted</th><th>Receipt</th><th></th></tr></thead>
+                <tbody>
+                  {queue.map((p) => (
+                    <tr key={p.id}>
+                      <td>{p.booking_ref}</td>
+                      <td>{p.label}</td>
+                      <td>{formatPrice(p.amount)}</td>
+                      <td>{p.method}</td>
+                      <td>{p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '—'}</td>
+                      <td>
+                        {p.proof_url ? (
+                          <a className="link inline" href={p.proof_url} target="_blank" rel="noreferrer">View receipt</a>
+                        ) : (
+                          <span className="muted small">no file</span>
+                        )}
+                      </td>
+                      <td className="row-actions">
+                        <button
+                          className="btn small"
+                          onClick={async () => {
+                            if (!session || !societyId) return;
+                            await verifyPayment(p.id, session.user.id, true);
+                            load(societyId);
+                          }}
+                        >
+                          ✓ Verify
+                        </button>
+                        <button
+                          className="btn secondary small"
+                          onClick={() => { setRejecting(p); setRejectReason(''); }}
+                        >
+                          Reject
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {rejecting && (
+            <div className="modal-backdrop" onClick={() => setRejecting(null)}>
+              <div className="card" onClick={(e) => e.stopPropagation()}>
+                <h3>Reject receipt</h3>
+                <p className="muted small">{rejecting.label} · {formatPrice(rejecting.amount)}</p>
+                <label>Reason (customer will see this)
+                  <input
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="e.g. Receipt is blurry / amount mismatch"
+                  />
+                </label>
+                <div className="link-row">
+                  <button
+                    className="btn small"
+                    onClick={async () => {
+                      if (!session || !societyId) return;
+                      await verifyPayment(rejecting.id, session.user.id, false, rejectReason.trim() || undefined);
+                      setRejecting(null);
+                      load(societyId);
+                    }}
+                  >
+                    Reject payment
+                  </button>
+                  <button className="btn secondary small" onClick={() => setRejecting(null)}>Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <h3>Payment history</h3>
           <div className="table-wrap">
             <table className="data-table">
@@ -142,12 +227,10 @@ export default function SocietyFinancials({ onNavigate }: { onNavigate: (p: stri
                     <td>{p.due_date}</td>
                     <td>{formatPrice(p.amount)}</td>
                     <td>{p.method}</td>
-                    <td><span className={`badge ${p.status === 'confirmed' ? 'ok' : 'warn'}`}>{p.status}</span></td>
+                    <td><span className={`badge ${p.status === 'confirmed' ? 'ok' : p.status === 'rejected' ? 'bad' : 'warn'}`}>{p.status}</span></td>
                     <td className="row-actions">
-                      {p.status === 'pending' && p.method !== 'jazzcash' && p.method !== 'easypaisa' && (
-                        <button className="link inline" onClick={async () => { await confirmPayment(p.id); if (societyId) load(societyId); }}>
-                          Confirm receipt
-                        </button>
+                      {p.proof_url && (
+                        <a className="link inline" href={p.proof_url} target="_blank" rel="noreferrer">Receipt</a>
                       )}
                     </td>
                   </tr>

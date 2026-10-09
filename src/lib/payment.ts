@@ -49,7 +49,7 @@ export async function generateSchedule(booking: Booking, totalPrice: number): Pr
       customer_id: booking.customer_id,
       society_id: booking.society_id,
       amount: down,
-      method: 'jazzcash',
+      method: 'bank',
       status: 'pending',
       due_date: start.toISOString().slice(0, 10),
       late_fee: 0,
@@ -65,7 +65,7 @@ export async function generateSchedule(booking: Booking, totalPrice: number): Pr
       customer_id: booking.customer_id,
       society_id: booking.society_id,
       amount: monthly,
-      method: 'jazzcash',
+      method: 'bank',
       status: 'pending',
       due_date: d.toISOString().slice(0, 10),
       late_fee: 0,
@@ -109,6 +109,9 @@ export async function fetchMyPayments(customerId: string): Promise<Payment[]> {
   return list;
 }
 
+/** Customer submits a payment with receipt proof.
+ *  NOTHING auto-confirms: every payment stays 'pending' until the
+ *  society admin or dealer verifies the receipt. */
 export async function payInstallment(
   p: Payment,
   method: PaymentMethod,
@@ -116,7 +119,10 @@ export async function payInstallment(
 ): Promise<void> {
   const supabase = getSupabase();
   if (!supabase) throw new Error('Database not connected');
-  let proofUrl: string | null = null;
+  if (method === 'bank' && !proofFile && !p.proof_url) {
+    throw new Error('Bank transfer requires a receipt/screenshot upload.');
+  }
+  let proofUrl: string | null = p.proof_url ?? null;
   if (proofFile) proofUrl = await uploadDocument(proofFile);
   const lateFee = calcLateFee(p);
   const { error } = await supabase
@@ -124,30 +130,105 @@ export async function payInstallment(
     .update({
       method,
       proof_url: proofUrl,
-      status: method === 'cash' || method === 'cheque' ? 'pending' : 'confirmed',
+      status: 'pending',
+      rejection_reason: null,
       paid_at: new Date().toISOString(),
       late_fee: lateFee,
     })
     .eq('id', p.id);
   if (error) throw error;
-  // trigger: payment received → notify society
-  if (p.society_id) {
-    notify(p.society_id, 'Payment received', `${p.label ?? 'Payment'} of PKR ${p.amount.toLocaleString()} received (${p.booking_ref ?? ''}).`, 'payment_received').catch(() => {});
-  }
-  // auto-generate installment receipt
-  try {
-    const { data: b } = await supabase.from('bookings').select('*').eq('id', p.booking_id).single();
-    if (b) await generateDocument(b as Booking, 'installment_receipt');
-  } catch (e) {
-    console.error('receipt gen failed:', e);
+  // trigger: payment submitted → notify society + dealer for verification
+  const { data: b } = await supabase.from('bookings').select('society_id, dealer_id').eq('id', p.booking_id).single();
+  const targets = [p.society_id, (b as { dealer_id?: string } | null)?.dealer_id].filter(Boolean) as string[];
+  if (targets.length > 0) {
+    notify(targets, 'Payment receipt submitted', `${p.label ?? 'Payment'} of PKR ${p.amount.toLocaleString()} submitted for verification (${p.booking_ref ?? ''}).`, 'payment_verify').catch(() => {});
   }
 }
 
-export async function confirmPayment(id: string): Promise<void> {
+/** Society admin / dealer verifies a submitted receipt. */
+export async function verifyPayment(
+  paymentId: string,
+  verifierId: string,
+  approved: boolean,
+  reason?: string,
+): Promise<void> {
   const supabase = getSupabase();
   if (!supabase) throw new Error('Database not connected');
-  const { error } = await supabase.from('payments').update({ status: 'confirmed', paid_at: new Date().toISOString() }).eq('id', id);
+  const { data: p } = await supabase.from('payments').select('*').eq('id', paymentId).single();
+  if (!p) throw new Error('Payment not found');
+  const pay = p as Payment;
+  const { error } = await supabase
+    .from('payments')
+    .update({
+      status: approved ? 'confirmed' : 'rejected',
+      verified_by: verifierId,
+      verified_at: new Date().toISOString(),
+      rejection_reason: approved ? null : (reason ?? 'Receipt could not be verified.'),
+      paid_at: approved ? new Date().toISOString() : pay.paid_at,
+    })
+    .eq('id', paymentId);
   if (error) throw error;
+  // notify customer of the decision
+  if (pay.customer_id) {
+    notify(
+      pay.customer_id,
+      approved ? 'Payment verified ✓' : 'Payment receipt rejected',
+      approved
+        ? `${pay.label ?? 'Payment'} of PKR ${pay.amount.toLocaleString()} has been verified.`
+        : `${pay.label ?? 'Payment'} of PKR ${pay.amount.toLocaleString()} was rejected: ${reason ?? 'receipt could not be verified'}. Please resubmit.`,
+      approved ? 'payment_verified' : 'payment_rejected',
+    ).catch(() => {});
+  }
+  // auto-generate installment receipt on approval
+  if (approved) {
+    try {
+      const { data: b } = await supabase.from('bookings').select('*').eq('id', pay.booking_id).single();
+      if (b) await generateDocument(b as Booking, 'installment_receipt');
+    } catch (e) {
+      console.error('receipt gen failed:', e);
+    }
+  }
+}
+
+/** Pending receipts awaiting verification for a society. */
+export async function fetchPendingVerifications(societyId: string): Promise<Payment[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('society_id', societyId)
+    .eq('status', 'pending')
+    .not('paid_at', 'is', null)
+    .order('paid_at', { ascending: false });
+  const list = (data as Payment[]) ?? [];
+  for (const p of list) {
+    const { data: b } = await supabase.from('bookings').select('reference_no').eq('id', p.booking_id).single();
+    p.booking_ref = (b as { reference_no: string } | null)?.reference_no ?? '—';
+  }
+  return list;
+}
+
+/** Pending receipts for bookings handled by a dealer. */
+export async function fetchDealerPendingVerifications(dealerId: string): Promise<Payment[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const { data: bookings } = await supabase.from('bookings').select('id').eq('dealer_id', dealerId);
+  const ids = ((bookings as { id: string }[]) ?? []).map((b) => b.id);
+  if (ids.length === 0) return [];
+  const { data } = await supabase
+    .from('payments')
+    .select('*')
+    .in('booking_id', ids)
+    .eq('status', 'pending')
+    .not('paid_at', 'is', null)
+    .order('paid_at', { ascending: false });
+  const list = (data as Payment[]) ?? [];
+  for (const p of list) {
+    const { data: b } = await supabase.from('bookings').select('reference_no').eq('id', p.booking_id).single();
+    p.booking_ref = (b as { reference_no: string } | null)?.reference_no ?? '—';
+  }
+  return list;
 }
 
 export async function fetchSocietyPayments(societyId: string): Promise<Payment[]> {

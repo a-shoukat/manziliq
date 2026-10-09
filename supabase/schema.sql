@@ -300,11 +300,14 @@ create table if not exists public.payments (
   customer_id uuid references public.profiles(id) on delete set null,
   society_id uuid references public.profiles(id) on delete set null,
   amount numeric not null default 0,
-  method text not null default 'jazzcash'
+  method text not null default 'bank'
     check (method in ('jazzcash', 'easypaisa', 'bank', 'cash', 'cheque')),
   proof_url text,
   status text not null default 'pending'
-    check (status in ('pending', 'confirmed')),
+    check (status in ('pending', 'confirmed', 'rejected')),
+  verified_by uuid references public.profiles(id) on delete set null,
+  verified_at timestamptz,
+  rejection_reason text,
   due_date date,
   paid_at timestamptz,
   late_fee numeric not null default 0,
@@ -312,6 +315,14 @@ create table if not exists public.payments (
   label text,
   created_at timestamptz not null default now()
 );
+
+-- migration for existing databases: widen status + add verification columns
+alter table public.payments drop constraint if exists payments_status_check;
+alter table public.payments
+  add constraint payments_status_check check (status in ('pending', 'confirmed', 'rejected'));
+alter table public.payments add column if not exists verified_by uuid references public.profiles(id) on delete set null;
+alter table public.payments add column if not exists verified_at timestamptz;
+alter table public.payments add column if not exists rejection_reason text;
 
 alter table public.installment_plans enable row level security;
 alter table public.payments enable row level security;
