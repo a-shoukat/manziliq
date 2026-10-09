@@ -17,6 +17,7 @@ import DealerHub from './pages/dealer/DealerHub';
 import Discover from './pages/dealer/Discover';
 import MyLots from './pages/dealer/MyLots';
 import Leads from './pages/dealer/Leads';
+import MapView from './pages/MapView';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
@@ -111,6 +112,10 @@ function Shell() {
       ) : page === 'dealer-leads' ? (
         <ProtectedRoute onNavigate={navigate} allowedRoles={['dealer', 'super_admin']}>
           <Leads onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'map-view' ? (
+        <ProtectedRoute onNavigate={navigate}>
+          <MapView onNavigate={navigate} />
         </ProtectedRoute>
       ) : (
         <ProtectedRoute onNavigate={navigate}>

@@ -40,6 +40,7 @@ export default function Navbar({
       </button>
       <div className="nav-links">
         {link('marketplace', 'Marketplace')}
+        {link('map-view', 'Map')}
         {link('compare', 'Compare', items.length || undefined)}
         {canAdd && link('add-property', '+ Add')}
         {isSociety && link('society', 'Society')}

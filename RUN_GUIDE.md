@@ -54,6 +54,7 @@ Browser mein kholo: **http://localhost:5173**
 | v3-marketplace | `v3-marketplace` | + Property Marketplace: search/filters/sort, property detail, add property, plot comparison (3 tak, side-by-side, saved) |
 | v4-society | `v4-society` | + Society Management: plot inventory (CSV upload, manual entry, edit/delete), interactive plot map (color-coded, zoom), dealer management (join requests, lot assignment, commission, revoke, performance) |
 | v5-dealer | `v5-dealer` | + Dealer Management: society discovery & join, lot view (showing-to-client, release), leads (call/visit log, follow-up, Hot/Warm/Cold), 6-stage deal pipeline |
+| v6-maps | `v6-maps` | + Interactive Maps: customer map view (color-coded, click details, filters, zoom, embed code) |
 
 ## Accounts kaise banayein (v2-auth)
 

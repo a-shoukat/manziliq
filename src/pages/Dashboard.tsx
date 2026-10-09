@@ -76,6 +76,9 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
           <button className="btn small" onClick={() => onNavigate('marketplace')}>
             Browse marketplace
           </button>
+          <button className="btn secondary small" onClick={() => onNavigate('map-view')}>
+            Society map
+          </button>
           <button className="btn secondary small" onClick={() => onNavigate('compare')}>
             Compare plots
           </button>
