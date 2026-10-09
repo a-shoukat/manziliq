@@ -58,6 +58,7 @@ Browser mein kholo: **http://localhost:5173**
 | v7-booking | `v7-booking` | + Booking: 5-step booking flow (token payment simulated, reference no.), society/admin approvals (reserve → token → sold) |
 | v8-payment | `v8-payment` | + Payment: methods (JazzCash/EasyPaisa/bank/cash/cheque), custom plans, auto schedule, due calendar, late fee, receipts, financial reporting |
 | v9-ai-price | `v9-ai-price` | + AI Price Prediction: Gemini AI estimate + local comparables fallback |
+| v10-notifications | `v10-notifications` | + Notifications: inbox + triggers + broadcast + templates |
 
 ## Accounts kaise banayein (v2-auth)
 

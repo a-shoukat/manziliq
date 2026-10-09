@@ -205,3 +205,21 @@ export interface Payment {
   created_at: string;
   booking_ref?: string;
 }
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  body: string | null;
+  type: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+export interface MessageTemplate {
+  id: string;
+  owner_id: string | null;
+  title: string;
+  body: string;
+  created_at: string;
+}

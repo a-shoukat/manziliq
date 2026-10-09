@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useCompare } from '../lib/compare';
+import { unreadCount } from '../lib/notify';
 
 export default function Navbar({
   page,
@@ -8,8 +10,19 @@ export default function Navbar({
   page: string;
   onNavigate: (p: string, arg?: string) => void;
 }) {
-  const { profile, signOut } = useAuth();
+  const { session, profile, signOut } = useAuth();
   const { items } = useCompare();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (session) {
+      unreadCount(session.user.id).then(setUnread);
+      const t = setInterval(() => {
+        if (session) unreadCount(session.user.id).then(setUnread);
+      }, 30000);
+      return () => clearInterval(t);
+    }
+  }, [session, page]);
 
   const link = (key: string, label: string, badge?: number) => (
     <button
@@ -50,6 +63,9 @@ export default function Navbar({
         {canAdd && link('add-property', '+ Add')}
         {isSociety && link('society', 'Society')}
         {isDealer && link('dealer', 'Dealer')}
+        {link('inbox', '🔔 Inbox', unread || undefined)}
+        {(profile?.role === 'society_admin' || profile?.role === 'super_admin') &&
+          link('broadcast', 'Broadcast')}
         {profile?.role === 'super_admin' &&
           link('admin-verification', 'Verification')}
         <button

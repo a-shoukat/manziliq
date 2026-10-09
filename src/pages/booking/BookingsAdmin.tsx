@@ -7,6 +7,7 @@ import {
   fetchSocietyBookings,
   setBookingStatus,
 } from '../../lib/booking';
+import { notify } from '../../lib/notify';
 import type { Booking } from '../../types';
 import { BookingCard } from './MyBookings';
 import { useSocietyId } from '../society/SocietyHub';
@@ -77,7 +78,7 @@ export default function BookingsAdmin({ onNavigate, admin }: Props) {
                   <button className="btn small" disabled={acting === b.id} onClick={() => act(b, () => approveBooking(b))}>
                     Approve → reserve plot
                   </button>
-                  <button className="btn secondary small" disabled={acting === b.id} onClick={() => act(b, () => setBookingStatus(b.id, 'rejected'))}>
+                  <button className="btn secondary small" disabled={acting === b.id} onClick={() => act(b, async () => { await setBookingStatus(b.id, 'rejected'); if (b.customer_id) notify(b.customer_id, 'Booking rejected', `Booking ${b.reference_no} was not approved.`, 'booking_rejected').catch(() => {}); })}>
                     Reject
                   </button>
                 </>

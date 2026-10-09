@@ -1,5 +1,6 @@
 import { getSupabase } from './supabase';
 import { generateSchedule } from './payment';
+import { notify } from './notify';
 import type { Booking } from '../types';
 
 export function makeReferenceNo(): string {
@@ -37,6 +38,10 @@ export async function createBooking(input: {
     .select()
     .single();
   if (error) throw error;
+  // trigger: new booking created → notify society
+  if (input.society_id) {
+    notify(input.society_id, 'New booking request', `Booking ${(data as Booking).reference_no} needs review.`, 'booking_created').catch(() => {});
+  }
   return data as Booking;
 }
 
@@ -89,6 +94,10 @@ export async function approveBooking(b: Booking): Promise<void> {
   if (!count) {
     await generateSchedule({ ...b, status: 'approved' }, total);
   }
+  // trigger: booking approved → notify customer
+  if (b.customer_id) {
+    notify(b.customer_id, 'Booking approved', `Booking ${b.reference_no} approved. Your payment schedule is ready.`, 'booking_approved').catch(() => {});
+  }
 }
 
 /** Complete transfer → mark plot sold, booking completed */
@@ -98,6 +107,10 @@ export async function completeTransfer(b: Booking): Promise<void> {
   await setBookingStatus(b.id, 'completed');
   if (b.plot_id) {
     await supabase.from('plots').update({ status: 'sold' }).eq('id', b.plot_id);
+  }
+  // trigger: transfer approved → notify customer
+  if (b.customer_id) {
+    notify(b.customer_id, 'Transfer approved', `Plot transfer for booking ${b.reference_no} is complete.`, 'transfer_approved').catch(() => {});
   }
 }
 

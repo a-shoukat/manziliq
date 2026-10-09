@@ -1,4 +1,5 @@
 import { getSupabase } from './supabase';
+import { notify } from './notify';
 import type { DealerRequest, Lot, Plot } from '../types';
 
 export async function fetchPlots(societyId: string): Promise<Plot[]> {
@@ -121,6 +122,8 @@ export async function createLot(
       .in('id', input.plotIds);
     if (pErr) throw pErr;
   }
+  // trigger: lot assigned → notify dealer
+  notify(input.dealerId, 'New lot assigned', `Lot "${input.name}" with ${input.plotIds.length} plots assigned to you.`, 'lot_assigned').catch(() => {});
 }
 
 export async function revokeLot(lotId: string): Promise<void> {

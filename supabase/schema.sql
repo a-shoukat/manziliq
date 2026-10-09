@@ -341,6 +341,50 @@ create policy "payments_society_insert" on public.payments
     or exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
   );
 
+-- ============ v10-notifications: inbox + templates ============
+
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  title text not null,
+  body text,
+  type text,
+  read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.message_templates (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid references public.profiles(id) on delete cascade,
+  title text not null,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.notifications enable row level security;
+alter table public.message_templates enable row level security;
+
+drop policy if exists "notif_owner_read" on public.notifications;
+create policy "notif_owner_read" on public.notifications
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "notif_owner_update" on public.notifications;
+create policy "notif_owner_update" on public.notifications
+  for update using (auth.uid() = user_id);
+
+drop policy if exists "notif_any_insert" on public.notifications;
+create policy "notif_any_insert" on public.notifications
+  for insert with check (auth.role() = 'authenticated');
+
+drop policy if exists "templates_owner" on public.message_templates;
+create policy "templates_owner" on public.message_templates
+  for all using (owner_id is null or auth.uid() = owner_id)
+  with check (auth.uid() = owner_id or owner_id is null);
+
+drop policy if exists "templates_read" on public.message_templates;
+create policy "templates_read" on public.message_templates
+  for select using (true);
+
 drop policy if exists "payments_society_update" on public.payments;
 create policy "payments_society_update" on public.payments
   for update using (
