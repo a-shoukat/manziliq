@@ -7,6 +7,7 @@ const ROLE_HOME: Record<string, { text: string; links: { label: string; page: st
     links: [
       { label: 'Book a plot', page: 'book-plot' },
       { label: 'My bookings', page: 'my-bookings' },
+      { label: 'My payments', page: 'my-payments' },
     ],
   },
   dealer: {
@@ -14,8 +15,11 @@ const ROLE_HOME: Record<string, { text: string; links: { label: string; page: st
     links: [{ label: 'Dealer portal', page: 'dealer' }],
   },
   society_admin: {
-    text: 'Manage inventory, dealers and booking requests.',
-    links: [{ label: 'Booking requests', page: 'society-bookings' }],
+    text: 'Manage inventory, dealers, bookings and finances.',
+    links: [
+      { label: 'Booking requests', page: 'society-bookings' },
+      { label: 'Financials', page: 'society-financials' },
+    ],
   },
   super_admin: {
     text: 'Review pending society & dealer registrations.',

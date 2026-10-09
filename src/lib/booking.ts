@@ -1,4 +1,5 @@
 import { getSupabase } from './supabase';
+import { generateSchedule } from './payment';
 import type { Booking } from '../types';
 
 export function makeReferenceNo(): string {
@@ -73,13 +74,20 @@ export async function setBookingStatus(id: string, status: Booking['status']): P
   if (error) throw error;
 }
 
-/** Approve booking → reserve the plot */
+/** Approve booking → reserve the plot + generate installment schedule */
 export async function approveBooking(b: Booking): Promise<void> {
   const supabase = getSupabase();
   if (!supabase) throw new Error('Database not connected');
   await setBookingStatus(b.id, 'approved');
+  let total = 0;
   if (b.plot_id) {
     await supabase.from('plots').update({ status: 'reserved' }).eq('id', b.plot_id);
+    const { data: p } = await supabase.from('plots').select('base_price').eq('id', b.plot_id).single();
+    total = Number((p as { base_price: number } | null)?.base_price ?? 0);
+  }
+  const { count } = await supabase.from('payments').select('id', { count: 'exact', head: true }).eq('booking_id', b.id);
+  if (!count) {
+    await generateSchedule({ ...b, status: 'approved' }, total);
   }
 }
 

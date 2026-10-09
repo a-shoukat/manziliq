@@ -42,6 +42,7 @@ export default function Navbar({
         {link('marketplace', 'Marketplace')}
         {link('map-view', 'Map')}
         {profile?.role === 'buyer' && link('book-plot', 'Book')}
+        {profile?.role === 'buyer' && link('my-payments', 'Payments')}
         {(profile?.role === 'society_admin' || profile?.role === 'super_admin') &&
           link('society-bookings', 'Bookings')}
         {link('compare', 'Compare', items.length || undefined)}

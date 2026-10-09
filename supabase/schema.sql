@@ -281,3 +281,69 @@ create policy "bookings_manage_update" on public.bookings
     auth.uid() = society_id or auth.uid() = dealer_id
     or exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
   );
+
+-- ============ v8-payment: plans + payments ============
+
+create table if not exists public.installment_plans (
+  id uuid primary key default gen_random_uuid(),
+  society_id uuid not null references public.profiles(id) on delete cascade,
+  name text not null,
+  duration_months int not null default 12,
+  down_payment_pct numeric not null default 20,
+  created_at timestamptz not null default now(),
+  unique (society_id, name)
+);
+
+create table if not exists public.payments (
+  id uuid primary key default gen_random_uuid(),
+  booking_id uuid not null references public.bookings(id) on delete cascade,
+  customer_id uuid references public.profiles(id) on delete set null,
+  society_id uuid references public.profiles(id) on delete set null,
+  amount numeric not null default 0,
+  method text not null default 'jazzcash'
+    check (method in ('jazzcash', 'easypaisa', 'bank', 'cash', 'cheque')),
+  proof_url text,
+  status text not null default 'pending'
+    check (status in ('pending', 'confirmed')),
+  due_date date,
+  paid_at timestamptz,
+  late_fee numeric not null default 0,
+  receipt_no text unique,
+  label text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.installment_plans enable row level security;
+alter table public.payments enable row level security;
+
+drop policy if exists "plans_society" on public.installment_plans;
+create policy "plans_society" on public.installment_plans
+  for all using (auth.uid() = society_id) with check (auth.uid() = society_id);
+
+drop policy if exists "plans_public_read" on public.installment_plans;
+create policy "plans_public_read" on public.installment_plans for select using (true);
+
+drop policy if exists "payments_read" on public.payments;
+create policy "payments_read" on public.payments
+  for select using (
+    auth.uid() = customer_id or auth.uid() = society_id
+    or exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
+  );
+
+drop policy if exists "payments_customer_insert" on public.payments;
+create policy "payments_customer_insert" on public.payments
+  for insert with check (auth.uid() = customer_id);
+
+drop policy if exists "payments_society_insert" on public.payments;
+create policy "payments_society_insert" on public.payments
+  for insert with check (
+    auth.uid() = society_id
+    or exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
+  );
+
+drop policy if exists "payments_society_update" on public.payments;
+create policy "payments_society_update" on public.payments
+  for update using (
+    auth.uid() = society_id
+    or exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
+  );

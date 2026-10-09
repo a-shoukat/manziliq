@@ -21,6 +21,8 @@ import MapView from './pages/MapView';
 import BookPlot from './pages/booking/BookPlot';
 import MyBookings from './pages/booking/MyBookings';
 import BookingsAdmin from './pages/booking/BookingsAdmin';
+import MyPayments from './pages/payment/MyPayments';
+import SocietyFinancials from './pages/payment/SocietyFinancials';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
@@ -135,6 +137,14 @@ function Shell() {
       ) : page === 'admin-bookings' ? (
         <ProtectedRoute onNavigate={navigate} allowedRoles={['super_admin']}>
           <BookingsAdmin onNavigate={navigate} admin />
+        </ProtectedRoute>
+      ) : page === 'my-payments' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['buyer', 'super_admin']}>
+          <MyPayments onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'society-financials' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
+          <SocietyFinancials onNavigate={navigate} />
         </ProtectedRoute>
       ) : (
         <ProtectedRoute onNavigate={navigate}>

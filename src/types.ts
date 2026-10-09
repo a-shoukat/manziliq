@@ -176,3 +176,32 @@ export const INSTALLMENT_PLANS = [
   '3-year plan',
   '5-year plan',
 ];
+
+export type PaymentMethod = 'jazzcash' | 'easypaisa' | 'bank' | 'cash' | 'cheque';
+
+export interface InstallmentPlan {
+  id: string;
+  society_id: string;
+  name: string;
+  duration_months: number;
+  down_payment_pct: number;
+  created_at: string;
+}
+
+export interface Payment {
+  id: string;
+  booking_id: string;
+  customer_id: string | null;
+  society_id: string | null;
+  amount: number;
+  method: PaymentMethod;
+  proof_url: string | null;
+  status: 'pending' | 'confirmed';
+  due_date: string | null;
+  paid_at: string | null;
+  late_fee: number;
+  receipt_no: string | null;
+  label: string | null;
+  created_at: string;
+  booking_ref?: string;
+}
