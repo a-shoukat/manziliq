@@ -9,6 +9,10 @@ import PropertyDetail from './pages/PropertyDetail';
 import Compare from './pages/Compare';
 import AddProperty from './pages/AddProperty';
 import AdminVerification from './pages/AdminVerification';
+import SocietyHub from './pages/society/SocietyHub';
+import Inventory from './pages/society/Inventory';
+import PlotMap from './pages/society/PlotMap';
+import Dealers from './pages/society/Dealers';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
@@ -71,6 +75,22 @@ function Shell() {
       ) : page === 'admin-verification' ? (
         <ProtectedRoute onNavigate={navigate} allowedRoles={['super_admin']}>
           <AdminVerification onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'society' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
+          <SocietyHub onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'society-inventory' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
+          <Inventory onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'society-map' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
+          <PlotMap onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'society-dealers' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
+          <Dealers onNavigate={navigate} />
         </ProtectedRoute>
       ) : (
         <ProtectedRoute onNavigate={navigate}>

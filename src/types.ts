@@ -66,3 +66,45 @@ export interface Property {
   owner_id: string | null;
   created_at: string;
 }
+
+export type PlotStatus = 'available' | 'assigned' | 'reserved' | 'sold' | 'blocked';
+
+export interface Plot {
+  id: string;
+  society_id: string;
+  block: string;
+  plot_no: string;
+  size_marla: number;
+  category: PropertyCategory;
+  base_price: number;
+  status: PlotStatus;
+  lot_id: string | null;
+  created_at: string;
+}
+
+export type LotStatus = 'active' | 'revoked' | 'expired' | 'released';
+
+export interface Lot {
+  id: string;
+  society_id: string;
+  dealer_id: string | null;
+  name: string;
+  block: string | null;
+  commission_pct: number;
+  expires_at: string | null;
+  status: LotStatus;
+  created_at: string;
+  dealer_email?: string;
+  plot_count?: number;
+}
+
+export interface DealerRequest {
+  id: string;
+  dealer_id: string;
+  society_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  dealer_email?: string;
+  firm_name?: string | null;
+  license_no?: string | null;
+}

@@ -127,3 +127,78 @@ create policy "properties_owner_update" on public.properties
 drop policy if exists "properties_owner_delete" on public.properties;
 create policy "properties_owner_delete" on public.properties
   for delete using (auth.uid() = owner_id);
+
+-- ============ v4-society: plots, lots, dealer requests ============
+
+create table if not exists public.lots (
+  id uuid primary key default gen_random_uuid(),
+  society_id uuid not null references public.profiles(id) on delete cascade,
+  dealer_id uuid references public.profiles(id) on delete set null,
+  name text not null,
+  block text,
+  commission_pct numeric not null default 0,
+  expires_at date,
+  status text not null default 'active'
+    check (status in ('active', 'revoked', 'expired', 'released')),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.plots (
+  id uuid primary key default gen_random_uuid(),
+  society_id uuid not null references public.profiles(id) on delete cascade,
+  block text not null,
+  plot_no text not null,
+  size_marla numeric not null default 5,
+  category text not null default 'residential'
+    check (category in ('residential', 'commercial')),
+  base_price numeric not null default 0,
+  status text not null default 'available'
+    check (status in ('available', 'assigned', 'reserved', 'sold', 'blocked')),
+  lot_id uuid references public.lots(id) on delete set null,
+  created_at timestamptz not null default now(),
+  unique (society_id, block, plot_no)
+);
+
+create table if not exists public.dealer_requests (
+  id uuid primary key default gen_random_uuid(),
+  dealer_id uuid not null references public.profiles(id) on delete cascade,
+  society_id uuid not null references public.profiles(id) on delete cascade,
+  status text not null default 'pending'
+    check (status in ('pending', 'approved', 'rejected')),
+  created_at timestamptz not null default now(),
+  unique (dealer_id, society_id)
+);
+
+alter table public.lots enable row level security;
+alter table public.plots enable row level security;
+alter table public.dealer_requests enable row level security;
+
+-- plots: public can read; society owns writes; assigned dealer can read own lots
+drop policy if exists "plots_public_read" on public.plots;
+create policy "plots_public_read" on public.plots for select using (true);
+
+drop policy if exists "plots_society_write" on public.plots;
+create policy "plots_society_write" on public.plots
+  for all using (auth.uid() = society_id) with check (auth.uid() = society_id);
+
+-- lots: society manages; dealer reads own
+drop policy if exists "lots_society_all" on public.lots;
+create policy "lots_society_all" on public.lots
+  for all using (auth.uid() = society_id) with check (auth.uid() = society_id);
+
+drop policy if exists "lots_dealer_read" on public.lots;
+create policy "lots_dealer_read" on public.lots
+  for select using (auth.uid() = dealer_id);
+
+-- dealer_requests: dealer creates own; society manages incoming
+drop policy if exists "dr_dealer_create" on public.dealer_requests;
+create policy "dr_dealer_create" on public.dealer_requests
+  for insert with check (auth.uid() = dealer_id);
+
+drop policy if exists "dr_read" on public.dealer_requests;
+create policy "dr_read" on public.dealer_requests
+  for select using (auth.uid() = dealer_id or auth.uid() = society_id);
+
+drop policy if exists "dr_society_update" on public.dealer_requests;
+create policy "dr_society_update" on public.dealer_requests
+  for update using (auth.uid() = society_id);
