@@ -474,6 +474,7 @@ drop policy if exists "gendoc_insert" on public.generated_documents;
 create policy "gendoc_insert" on public.generated_documents
   for insert with check (
     auth.uid() = society_id
+    or auth.uid() = customer_id
     or exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
   );
 

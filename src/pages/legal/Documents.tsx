@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/auth';
 import { fetchDocuments, generateDocument } from '../../lib/legal';
-import { fetchSocietyBookings } from '../../lib/booking';
+import { fetchAllBookings, fetchSocietyBookings } from '../../lib/booking';
 import { DOC_TITLES, type Booking, type GeneratedDocType, type GeneratedDocument } from '../../types';
 import { useSocietyId } from '../society/SocietyHub';
 
@@ -32,7 +32,8 @@ export default function Documents({ onNavigate }: { onNavigate: (p: string) => v
     else if (role === 'society_admin' && societyId) d = await fetchDocuments({ societyId });
     else if (role === 'super_admin') d = await fetchDocuments({ all: true });
     setDocs(d);
-    if (isSociety && societyId) setBookings(await fetchSocietyBookings(societyId));
+    if (role === 'super_admin') setBookings(await fetchAllBookings());
+    else if (isSociety && societyId) setBookings(await fetchSocietyBookings(societyId));
     setLoading(false);
   };
 
