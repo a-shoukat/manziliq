@@ -385,6 +385,65 @@ drop policy if exists "templates_read" on public.message_templates;
 create policy "templates_read" on public.message_templates
   for select using (true);
 
+-- ============ v11-admin: disputes + legal templates ============
+
+create table if not exists public.disputes (
+  id uuid primary key default gen_random_uuid(),
+  reporter_id uuid references public.profiles(id) on delete set null,
+  type text not null default 'customer-complaint'
+    check (type in ('society-dealer', 'customer-complaint', 'transaction')),
+  subject text not null,
+  description text not null,
+  plot_id uuid references public.plots(id) on delete set null,
+  booking_ref text,
+  status text not null default 'open'
+    check (status in ('open', 'in_review', 'resolved', 'escalated')),
+  resolution_note text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.legal_templates (
+  id uuid primary key default gen_random_uuid(),
+  key text not null,
+  title text not null,
+  body text not null,
+  version int not null default 1,
+  published boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+alter table public.disputes enable row level security;
+alter table public.legal_templates enable row level security;
+
+drop policy if exists "disputes_reporter_insert" on public.disputes;
+create policy "disputes_reporter_insert" on public.disputes
+  for insert with check (auth.uid() = reporter_id);
+
+drop policy if exists "disputes_read" on public.disputes;
+create policy "disputes_read" on public.disputes
+  for select using (
+    auth.uid() = reporter_id
+    or exists (select 1 from public.profiles where id = auth.uid() and role in ('super_admin', 'society_admin'))
+  );
+
+drop policy if exists "disputes_admin_update" on public.disputes;
+create policy "disputes_admin_update" on public.disputes
+  for update using (
+    exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
+  );
+
+drop policy if exists "legal_tpl_admin" on public.legal_templates;
+create policy "legal_tpl_admin" on public.legal_templates
+  for all using (
+    exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
+  ) with check (
+    exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
+  );
+
+drop policy if exists "legal_tpl_read" on public.legal_templates;
+create policy "legal_tpl_read" on public.legal_templates
+  for select using (published = true);
+
 drop policy if exists "payments_society_update" on public.payments;
 create policy "payments_society_update" on public.payments
   for update using (

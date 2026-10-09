@@ -59,6 +59,7 @@ Browser mein kholo: **http://localhost:5173**
 | v8-payment | `v8-payment` | + Payment: methods (JazzCash/EasyPaisa/bank/cash/cheque), custom plans, auto schedule, due calendar, late fee, receipts, financial reporting |
 | v9-ai-price | `v9-ai-price` | + AI Price Prediction: Gemini AI estimate + local comparables fallback |
 | v10-notifications | `v10-notifications` | + Notifications: inbox + triggers + broadcast + templates |
+| v11-admin | `v11-admin` | + Admin Panel: disputes, legal templates, platform analytics |
 
 ## Accounts kaise banayein (v2-auth)
 

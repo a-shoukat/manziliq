@@ -223,3 +223,37 @@ export interface MessageTemplate {
   body: string;
   created_at: string;
 }
+
+export type DisputeType = 'society-dealer' | 'customer-complaint' | 'transaction';
+export type DisputeStatus = 'open' | 'in_review' | 'resolved' | 'escalated';
+
+export interface Dispute {
+  id: string;
+  reporter_id: string | null;
+  type: DisputeType;
+  subject: string;
+  description: string;
+  plot_id: string | null;
+  booking_ref: string | null;
+  status: DisputeStatus;
+  resolution_note: string | null;
+  created_at: string;
+  reporter_email?: string;
+  plot_label?: string;
+}
+
+export interface LegalTemplate {
+  id: string;
+  key: string;
+  title: string;
+  body: string;
+  version: number;
+  published: boolean;
+  created_at: string;
+}
+
+export const LEGAL_TEMPLATE_KEYS = [
+  { key: 'allotment', title: 'Allotment Letter' },
+  { key: 'sale_agreement', title: 'Sale Agreement' },
+  { key: 'transfer_deed', title: 'Transfer Deed' },
+];

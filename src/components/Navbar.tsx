@@ -66,6 +66,8 @@ export default function Navbar({
         {link('inbox', '🔔 Inbox', unread || undefined)}
         {(profile?.role === 'society_admin' || profile?.role === 'super_admin') &&
           link('broadcast', 'Broadcast')}
+        {profile?.role === 'super_admin' && link('admin', 'Admin')}
+        {profile?.role === 'super_admin' && link('admin-disputes', 'Disputes')}
         {profile?.role === 'super_admin' &&
           link('admin-verification', 'Verification')}
         <button

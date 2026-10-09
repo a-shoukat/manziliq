@@ -26,6 +26,10 @@ import SocietyFinancials from './pages/payment/SocietyFinancials';
 import PriceEstimator from './pages/PriceEstimator';
 import Inbox from './pages/notifications/Inbox';
 import Broadcast from './pages/notifications/Broadcast';
+import AdminHub from './pages/admin/AdminHub';
+import Disputes from './pages/admin/Disputes';
+import LegalTemplates from './pages/admin/LegalTemplates';
+import PlatformAnalytics from './pages/admin/PlatformAnalytics';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
@@ -160,6 +164,22 @@ function Shell() {
       ) : page === 'broadcast' ? (
         <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
           <Broadcast onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'admin' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['super_admin']}>
+          <AdminHub onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'admin-disputes' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['super_admin']}>
+          <Disputes onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'admin-templates' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['super_admin']}>
+          <LegalTemplates onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'admin-analytics' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['super_admin']}>
+          <PlatformAnalytics onNavigate={navigate} />
         </ProtectedRoute>
       ) : (
         <ProtectedRoute onNavigate={navigate}>

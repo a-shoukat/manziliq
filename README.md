@@ -29,6 +29,7 @@ Open http://localhost:5173
 | `v8-payment` | 7 · Payment | Payment methods (JazzCash/EasyPaisa/bank+cash+cheque), custom installment plans, auto schedule on approval, due calendar, late fee 2%/mo, overdue escalation, receipts (print/PDF), financial reporting (revenue, pending, defaulters, commission, monthly trend) |
 | `v9-ai-price` | 8 · AI Price Prediction | Price estimator: Gemini AI when key present, local comparables fallback (avg PKR/marla from plots+listings), low/mid/high band with reasoning |
 | `v10-notifications` | 9 · Notifications | In-app inbox with unread badge, trigger events (booking/payment/lot/transfer), due-date & late alerts, broadcast (society→customers/dealers, admin→societies/all), message templates, scheduled announcements |
+| `v11-admin` | 10 · Admin Panel | Dispute management (file, mediate, freeze plot, resolution notice, close/escalate), legal template management (edit/preview/version/publish), platform analytics (societies, dealers, customers, GMV, plots, growth) |
 | `v4-society` | 3 · Society Management | _planned_ |
 | `v5-dealer` | 4 · Dealer Management | _planned_ |
 | `v6-maps` | 5 · Interactive Maps | _planned_ |

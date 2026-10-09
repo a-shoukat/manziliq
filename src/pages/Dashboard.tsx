@@ -22,8 +22,11 @@ const ROLE_HOME: Record<string, { text: string; links: { label: string; page: st
     ],
   },
   super_admin: {
-    text: 'Review pending society & dealer registrations.',
-    links: [{ label: 'Verification queue', page: 'admin-verification' }],
+    text: 'Full platform control.',
+    links: [
+      { label: 'Admin panel', page: 'admin' },
+      { label: 'Verification queue', page: 'admin-verification' },
+    ],
   },
 };
 
