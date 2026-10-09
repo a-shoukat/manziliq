@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './lib/auth';
 import { isSupabaseConfigured } from './lib/supabase';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import AdminVerification from './pages/AdminVerification';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
 
@@ -24,11 +25,18 @@ function Shell() {
     );
   }
 
-  // Already signed in → go to dashboard
-  if (session && page === 'login') {
+  if (session && (page === 'login' || page === 'dashboard')) {
     return (
       <ProtectedRoute onNavigate={setPage}>
         <Dashboard onNavigate={setPage} />
+      </ProtectedRoute>
+    );
+  }
+
+  if (page === 'admin-verification') {
+    return (
+      <ProtectedRoute onNavigate={setPage} allowedRoles={['super_admin']}>
+        <AdminVerification onNavigate={setPage} />
       </ProtectedRoute>
     );
   }

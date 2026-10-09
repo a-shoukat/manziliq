@@ -1,15 +1,39 @@
 import { useAuth } from '../lib/auth';
 import { ROLE_LABELS } from '../types';
 
-const ROLE_HOME: Record<string, string> = {
-  buyer: 'Browse properties in the marketplace (coming in v3).',
-  dealer: 'Manage your listings and leads (coming in v5).',
-  society_admin: 'Manage your society inventory (coming in v4).',
-  super_admin: 'Full platform administration (coming in v11).',
+const ROLE_HOME: Record<string, { text: string; links: { label: string; page: string }[] }> = {
+  buyer: {
+    text: 'Search and browse properties. Marketplace arrives in v3.',
+    links: [],
+  },
+  dealer: {
+    text: 'Your account is under verification. After approval you can discover societies and manage leads.',
+    links: [],
+  },
+  society_admin: {
+    text: 'Your society is under verification. After approval you can manage plot inventory.',
+    links: [],
+  },
+  super_admin: {
+    text: 'Review pending society & dealer registrations.',
+    links: [{ label: 'Verification queue', page: 'admin-verification' }],
+  },
 };
 
 export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
   const { profile, signOut } = useAuth();
+  const home = profile ? ROLE_HOME[profile.role] : null;
+
+  const statusBadge =
+    profile?.verification_status === 'approved' ? (
+      <div className="badge ok">Verified</div>
+    ) : profile?.verification_status === 'pending' ? (
+      <div className="badge warn">Pending verification</div>
+    ) : profile?.verification_status === 'rejected' ? (
+      <div className="badge warn">Rejected</div>
+    ) : (
+      <div className="badge warn">Blacklisted</div>
+    );
 
   return (
     <div className="page">
@@ -32,17 +56,24 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
           </button>
         </div>
 
-        <div className="badge ok">Database connected</div>
+        {statusBadge}
         <p>
           Signed in as <strong>{profile?.email}</strong>
         </p>
-        <p className="muted">
-          {profile ? ROLE_HOME[profile.role] : ''}
-        </p>
+        <p className="muted">{home?.text}</p>
+
+        {home && home.links.length > 0 && (
+          <div className="link-row">
+            {home.links.map((l) => (
+              <button key={l.page} className="btn secondary small" onClick={() => onNavigate(l.page)}>
+                {l.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="notice" style={{ marginTop: 16 }}>
-          Module 1 of 12 complete: Authentication with role-based access.
-          Marketplace, Society, Dealer and the rest arrive in the next versions.
+          Module 1 of 12: Authentication + Registration & Verification (all roles).
         </div>
       </div>
     </div>

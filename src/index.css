@@ -181,6 +181,95 @@ select {
   color: #e2e8f0;
 }
 
+.role-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.role-card {
+  padding: 16px 10px;
+  border-radius: 10px;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.role-card.selected {
+  border-color: #38bdf8;
+  background: #1e3a5f;
+}
+
+.link-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.btn.danger {
+  background: #7f1d1d;
+}
+
+.btn.danger:hover:not(:disabled) {
+  background: #991b1b;
+}
+
+.muted.small {
+  font-size: 12px;
+}
+
+.queue-card {
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: #0f172a;
+}
+
+.queue-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.detail-item {
+  font-size: 13px;
+}
+
+.detail-key {
+  display: block;
+  color: #94a3b8;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.link.inline {
+  display: inline;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+h3 {
+  font-size: 16px;
+  margin: 16px 0 10px;
+}
+
 .email {
   font-size: 16px;
   font-weight: 600;

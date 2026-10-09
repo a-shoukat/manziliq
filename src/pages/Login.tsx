@@ -1,16 +1,21 @@
 import { useState } from 'react';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase';
 import { ROLE_LABELS, type UserRole } from '../types';
+import {
+  CustomerRegistrationForm,
+  DealerRegistrationForm,
+  SocietyRegistrationForm,
+} from '../components/RegistrationForms';
 
-type Mode = 'signin' | 'signup';
+type Step = 'signin' | 'choose-role' | 'create-account' | 'register-details';
 
-const ROLES: UserRole[] = ['buyer', 'dealer', 'society_admin', 'super_admin'];
+const ROLES: UserRole[] = ['buyer', 'dealer', 'society_admin'];
 
 export default function Login({ onNavigate }: { onNavigate: (p: string) => void }) {
-  const [mode, setMode] = useState<Mode>('signin');
+  const [step, setStep] = useState<Step>('signin');
+  const [role, setRole] = useState<UserRole>('buyer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('buyer');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -31,108 +36,142 @@ export default function Login({ onNavigate }: { onNavigate: (p: string) => void 
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSignin = async (e: React.FormEvent) => {
     e.preventDefault();
     const supabase = getSupabase();
     if (!supabase) return;
     setLoading(true);
     setError(null);
-    setNotice(null);
     try {
-      if (mode === 'signin') {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        onNavigate('dashboard');
-      } else {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        if (data.user) {
-          // Create the role profile right away
-          const { error: pErr } = await supabase.from('profiles').insert({
-            id: data.user.id,
-            email,
-            role,
-          });
-          if (pErr) throw pErr;
-        }
-        setNotice(
-          'Account created! If email confirmation is on, confirm your email, then sign in.',
-        );
-        setMode('signin');
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      onNavigate('dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setError(err instanceof Error ? err.message : 'Sign in failed');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const supabase = getSupabase();
+    if (!supabase) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+      const user = data.user;
+      if (!user) throw new Error('Signup failed — please try again');
+      const needsApproval = role === 'dealer' || role === 'society_admin';
+      const { error: pErr } = await supabase.from('profiles').insert({
+        id: user.id,
+        email,
+        role,
+        verification_status: needsApproval ? 'pending' : 'approved',
+      });
+      if (pErr) throw pErr;
+      setStep('register-details');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Signup failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const detailsDone = () => {
+    setNotice(
+      role === 'buyer'
+        ? 'Registration complete — welcome!'
+        : 'Submitted! Admin will verify your documents, then your account activates.',
+    );
+    setStep('signin');
   };
 
   return (
     <div className="page">
       <div className="card">
         <h1>ManzilIQ</h1>
-        <p className="muted">
-          {mode === 'signin' ? 'Sign in to your account' : 'Create a new account'}
-        </p>
-        <form onSubmit={handleSubmit}>
-          <label>
-            Email
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-            />
-          </label>
-          {mode === 'signup' && (
-            <label>
-              I am a…
-              <select value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABELS[r]}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {error && <div className="error">{error}</div>}
-          {notice && <div className="notice">{notice}</div>}
-          <button className="btn" type="submit" disabled={loading}>
-            {loading
-              ? 'Please wait…'
-              : mode === 'signin'
-                ? 'Sign in'
-                : 'Create account'}
-          </button>
-        </form>
-        <button
-          className="link"
-          onClick={() => {
-            setMode(mode === 'signin' ? 'signup' : 'signin');
-            setError(null);
-            setNotice(null);
-          }}
-        >
-          {mode === 'signin'
-            ? "Don't have an account? Create one"
-            : 'Already have an account? Sign in'}
-        </button>
+
+        {step === 'signin' && (
+          <>
+            <p className="muted">Sign in to your account</p>
+            <form onSubmit={handleSignin}>
+              <label>
+                Email
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+              </label>
+              <label>
+                Password
+                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+              </label>
+              {error && <div className="error">{error}</div>}
+              {notice && <div className="notice">{notice}</div>}
+              <button className="btn" disabled={loading}>
+                {loading ? 'Please wait…' : 'Sign in'}
+              </button>
+            </form>
+            <button className="link" onClick={() => { setStep('choose-role'); setError(null); setNotice(null); }}>
+              Don't have an account? Register
+            </button>
+          </>
+        )}
+
+        {step === 'choose-role' && (
+          <>
+            <p className="muted">I want to register as…</p>
+            <div className="role-grid">
+              {ROLES.map((r) => (
+                <button
+                  key={r}
+                  className={`role-card${role === r ? ' selected' : ''}`}
+                  onClick={() => setRole(r)}
+                >
+                  {ROLE_LABELS[r]}
+                </button>
+              ))}
+            </div>
+            <button className="btn" onClick={() => setStep('create-account')}>
+              Continue
+            </button>
+            <button className="link" onClick={() => setStep('signin')}>
+              Back to sign in
+            </button>
+          </>
+        )}
+
+        {step === 'create-account' && (
+          <>
+            <p className="muted">Create account — {ROLE_LABELS[role]}</p>
+            <form onSubmit={handleCreateAccount}>
+              <label>
+                Email
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+              </label>
+              <label>
+                Password
+                <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 6 characters" />
+              </label>
+              {error && <div className="error">{error}</div>}
+              <button className="btn" disabled={loading}>
+                {loading ? 'Please wait…' : 'Create account'}
+              </button>
+            </form>
+            <button className="link" onClick={() => setStep('choose-role')}>
+              Back
+            </button>
+          </>
+        )}
+
+        {step === 'register-details' && (
+          <>
+            <p className="muted">Complete your {ROLE_LABELS[role]} profile</p>
+            {role === 'society_admin' && <SocietyRegistrationForm onDone={detailsDone} />}
+            {role === 'dealer' && <DealerRegistrationForm onDone={detailsDone} />}
+            {role === 'buyer' && <CustomerRegistrationForm onDone={detailsDone} />}
+          </>
+        )}
       </div>
     </div>
   );

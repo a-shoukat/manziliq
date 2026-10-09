@@ -7,57 +7,88 @@ import {
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { getSupabase } from '../lib/supabase';
-import type { Profile, UserRole } from '../types';
+import type {
+  CustomerDetails,
+  DealerDetails,
+  Profile,
+  SocietyDetails,
+  UserRole,
+} from '../types';
 
 interface AuthState {
   session: Session | null;
   profile: Profile | null;
+  details: SocietyDetails | DealerDetails | CustomerDetails | null;
   loading: boolean;
+  refresh: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState>({
   session: null,
   profile: null,
+  details: null,
   loading: true,
+  refresh: async () => {},
   signOut: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-async function fetchOrCreateProfile(
-  userId: string,
-  email: string,
-): Promise<Profile | null> {
-  const supabase = getSupabase();
-  if (!supabase) return null;
+const DETAIL_TABLE: Record<UserRole, string> = {
+  buyer: 'customer_details',
+  dealer: 'dealer_details',
+  society_admin: 'society_details',
+  super_admin: 'customer_details',
+};
 
-  const { data, error } = await supabase
+async function loadProfile(userId: string): Promise<{
+  profile: Profile | null;
+  details: SocietyDetails | DealerDetails | CustomerDetails | null;
+}> {
+  const supabase = getSupabase();
+  if (!supabase) return { profile: null, details: null };
+
+  const { data: profile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', userId)
     .single();
 
-  if (!error && data) return data as Profile;
+  if (!profile) return { profile: null, details: null };
 
-  // No profile yet — create a default buyer profile
-  const { data: created, error: insertError } = await supabase
-    .from('profiles')
-    .insert({ id: userId, email, role: 'buyer' as UserRole })
-    .select()
+  const table = DETAIL_TABLE[profile.role as UserRole] ?? 'customer_details';
+  const { data: details } = await supabase
+    .from(table)
+    .select('*')
+    .eq('profile_id', userId)
     .single();
 
-  if (insertError) {
-    console.error('Profile creation failed:', insertError.message);
-    return null;
-  }
-  return created as Profile;
+  return { profile: profile as Profile, details: details ?? null };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [details, setDetails] = useState<
+    SocietyDetails | DealerDetails | CustomerDetails | null
+  >(null);
   const [loading, setLoading] = useState(true);
+
+  const refresh = async () => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    const { data } = await supabase.auth.getSession();
+    setSession(data.session);
+    if (data.session?.user) {
+      const { profile: p, details: d } = await loadProfile(data.session.user.id);
+      setProfile(p);
+      setDetails(d);
+    } else {
+      setProfile(null);
+      setDetails(null);
+    }
+  };
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -65,33 +96,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-
-    const init = async () => {
-      const { data } = await supabase.auth.getSession();
-      setSession(data.session);
-      if (data.session?.user) {
-        const p = await fetchOrCreateProfile(
-          data.session.user.id,
-          data.session.user.email ?? '',
-        );
+    refresh().finally(() => setLoading(false));
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_e, s) => {
+      setSession(s);
+      if (s?.user) {
+        const { profile: p, details: d } = await loadProfile(s.user.id);
         setProfile(p);
+        setDetails(d);
+      } else {
+        setProfile(null);
+        setDetails(null);
       }
-      setLoading(false);
-    };
-    init();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, s) => {
-        setSession(s);
-        if (s?.user) {
-          const p = await fetchOrCreateProfile(s.user.id, s.user.email ?? '');
-          setProfile(p);
-        } else {
-          setProfile(null);
-        }
-      },
-    );
+    });
     return () => listener.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signOut = async () => {
@@ -99,10 +117,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (supabase) await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
+    setDetails(null);
   };
 
   return (
-    <AuthContext.Provider value={{ session, profile, loading, signOut }}>
+    <AuthContext.Provider
+      value={{ session, profile, details, loading, refresh, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );
