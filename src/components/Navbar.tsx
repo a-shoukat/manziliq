@@ -41,6 +41,7 @@ export default function Navbar({
       <div className="nav-links">
         {link('marketplace', 'Marketplace')}
         {link('map-view', 'Map')}
+        {link('price-estimator', 'AI Price')}
         {profile?.role === 'buyer' && link('book-plot', 'Book')}
         {profile?.role === 'buyer' && link('my-payments', 'Payments')}
         {(profile?.role === 'society_admin' || profile?.role === 'super_admin') &&

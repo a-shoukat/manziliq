@@ -27,6 +27,7 @@ Open http://localhost:5173
 | `v6-maps` | 5 · Interactive Maps | Customer map view: society layout map, click plot → details popup, color-coded availability, filters (block/size/status), zoom, embeddable map snippet |
 | `v7-booking` | 6 · Booking | Booking flow (plot select, direct/via dealer, token payment simulated, installment plan, confirmation + reference no.); society/admin approvals (approve → reserve, token confirm, transfer → sold); my bookings |
 | `v8-payment` | 7 · Payment | Payment methods (JazzCash/EasyPaisa/bank+cash+cheque), custom installment plans, auto schedule on approval, due calendar, late fee 2%/mo, overdue escalation, receipts (print/PDF), financial reporting (revenue, pending, defaulters, commission, monthly trend) |
+| `v9-ai-price` | 8 · AI Price Prediction | Price estimator: Gemini AI when key present, local comparables fallback (avg PKR/marla from plots+listings), low/mid/high band with reasoning |
 | `v4-society` | 3 · Society Management | _planned_ |
 | `v5-dealer` | 4 · Dealer Management | _planned_ |
 | `v6-maps` | 5 · Interactive Maps | _planned_ |

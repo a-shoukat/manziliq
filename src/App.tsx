@@ -23,6 +23,7 @@ import MyBookings from './pages/booking/MyBookings';
 import BookingsAdmin from './pages/booking/BookingsAdmin';
 import MyPayments from './pages/payment/MyPayments';
 import SocietyFinancials from './pages/payment/SocietyFinancials';
+import PriceEstimator from './pages/PriceEstimator';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
@@ -145,6 +146,10 @@ function Shell() {
       ) : page === 'society-financials' ? (
         <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
           <SocietyFinancials onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'price-estimator' ? (
+        <ProtectedRoute onNavigate={navigate}>
+          <PriceEstimator onNavigate={navigate} />
         </ProtectedRoute>
       ) : (
         <ProtectedRoute onNavigate={navigate}>

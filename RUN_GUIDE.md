@@ -57,6 +57,7 @@ Browser mein kholo: **http://localhost:5173**
 | v6-maps | `v6-maps` | + Interactive Maps: customer map view (color-coded, click details, filters, zoom, embed code) |
 | v7-booking | `v7-booking` | + Booking: 5-step booking flow (token payment simulated, reference no.), society/admin approvals (reserve → token → sold) |
 | v8-payment | `v8-payment` | + Payment: methods (JazzCash/EasyPaisa/bank/cash/cheque), custom plans, auto schedule, due calendar, late fee, receipts, financial reporting |
+| v9-ai-price | `v9-ai-price` | + AI Price Prediction: Gemini AI estimate + local comparables fallback |
 
 ## Accounts kaise banayein (v2-auth)
 
