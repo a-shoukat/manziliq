@@ -1,8 +1,7 @@
 import { getSupabase } from './supabase';
 import type { MessageTemplate, Notification } from '../types';
 
-/** Write an in-app notification. External channels (SMS/Email/FCM)
- *  plug in here once API keys are configured. */
+/** Write an in-app notification + fire a real push via FCM (if configured). */
 export async function notify(
   userIds: string | string[],
   title: string,
@@ -18,6 +17,10 @@ export async function notify(
     .from('notifications')
     .insert(uniq.map((user_id) => ({ user_id, title, body, type })));
   if (error) console.error('notify failed:', error.message);
+  // Real push notification (fire-and-forget; no-op until FCM is configured server-side)
+  supabase.functions
+    .invoke('send-push', { body: { user_ids: uniq, title, body } })
+    .catch(() => {});
 }
 
 export async function fetchInbox(userId: string): Promise<Notification[]> {

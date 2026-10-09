@@ -8,7 +8,6 @@ type SortKey = 'newest' | 'price-asc' | 'price-desc' | 'size-desc';
 
 export default function Marketplace({ onNavigate }: { onNavigate: (p: string, arg?: string) => void }) {
   const [all, setAll] = useState<Property[]>([]);
-  const [demo, setDemo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [city, setCity] = useState('');
@@ -20,9 +19,8 @@ export default function Marketplace({ onNavigate }: { onNavigate: (p: string, ar
   const { items: compareItems, toggle, has, clear } = useCompare();
 
   useEffect(() => {
-    fetchProperties().then(({ list, demo }) => {
+    fetchProperties().then(({ list }) => {
       setAll(list);
-      setDemo(demo);
       setLoading(false);
     });
   }, []);
@@ -53,7 +51,6 @@ export default function Marketplace({ onNavigate }: { onNavigate: (p: string, ar
           <h1>Marketplace</h1>
           <p className="muted" style={{ margin: 0 }}>
             {filtered.length} properties
-            {demo && ' · demo data — run supabase/schema.sql for live data'}
           </p>
         </div>
         <button className="btn secondary small" onClick={() => onNavigate('dashboard')}>

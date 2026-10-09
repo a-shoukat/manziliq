@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/auth';
 import { calcLateFee, fetchMyPayments } from '../../lib/payment';
 import { fetchInbox, markAllRead, markRead } from '../../lib/notify';
+import { enablePush, pushPermission, pushSupported } from '../../lib/push';
 import { formatPrice } from '../../lib/properties';
 import type { Notification } from '../../types';
 
@@ -11,6 +12,18 @@ export default function Inbox({ onNavigate }: { onNavigate: (p: string) => void 
   const [items, setItems] = useState<Notification[]>([]);
   const [reminders, setReminders] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pushState, setPushState] = useState<'unknown' | 'on' | 'off' | 'unsupported'>('unknown');
+  const [pushMsg, setPushMsg] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      if (!(await pushSupported())) {
+        setPushState('unsupported');
+        return;
+      }
+      setPushState(pushPermission() === 'granted' ? 'on' : 'off');
+    })();
+  }, []);
 
   const load = async () => {
     if (!session) return;
@@ -56,6 +69,26 @@ export default function Inbox({ onNavigate }: { onNavigate: (p: string) => void 
           <p className="muted" style={{ margin: 0 }}>Notifications & reminders</p>
         </div>
         <div className="link-row" style={{ margin: 0 }}>
+          {pushState === 'off' && session && (
+            <button
+              className="btn small"
+              onClick={async () => {
+                setPushMsg('Requesting permission…');
+                const r = await enablePush(session.user.id);
+                if (r.ok) {
+                  setPushState('on');
+                  setPushMsg('Push notifications enabled on this device.');
+                } else {
+                  setPushMsg(r.error ?? 'Could not enable push.');
+                }
+              }}
+            >
+              🔔 Enable push notifications
+            </button>
+          )}
+          {pushState === 'on' && (
+            <span className="muted small">🔔 Push on</span>
+          )}
           {items.some((n) => !n.read) && (
             <button
               className="btn secondary small"
@@ -72,6 +105,8 @@ export default function Inbox({ onNavigate }: { onNavigate: (p: string) => void 
           <button className="btn secondary small" onClick={() => onNavigate('dashboard')}>Dashboard</button>
         </div>
       </div>
+
+      {pushMsg && <div className="notice" style={{ marginBottom: 12 }}>{pushMsg}</div>}
 
       {reminders.length > 0 && (
         <div className="notice warn-box" style={{ marginBottom: 12 }}>
