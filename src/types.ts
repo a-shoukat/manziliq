@@ -64,6 +64,7 @@ export interface Property {
   image_url: string | null;
   status: PropertyStatus;
   owner_id: string | null;
+  is_featured?: boolean | null;
   created_at: string;
 }
 
