@@ -64,6 +64,7 @@ export default function Navbar({
         {isSociety && link('society', 'Society')}
         {isDealer && link('dealer', 'Dealer')}
         {link('inbox', '🔔 Inbox', unread || undefined)}
+        {link('documents', 'Documents')}
         {(profile?.role === 'society_admin' || profile?.role === 'super_admin') &&
           link('broadcast', 'Broadcast')}
         {profile?.role === 'super_admin' && link('admin', 'Admin')}

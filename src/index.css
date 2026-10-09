@@ -869,7 +869,8 @@ textarea {
   body * {
     visibility: hidden;
   }
-  .receipt, .receipt * {
+  .receipt, .receipt *,
+  .bulk-print, .bulk-print * {
     visibility: visible;
   }
   .receipt {
@@ -881,6 +882,18 @@ textarea {
   }
   .receipt .no-print {
     display: none !important;
+  }
+  .bulk-print {
+    position: fixed;
+    inset: 20px;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .bulk-doc {
+    page-break-after: always;
+  }
+  .bulk-doc .doc-body {
+    color: #000;
   }
 }
 
@@ -906,3 +919,27 @@ textarea {
   width: auto;
   margin-top: 0;
 }
+
+.doc-watermark {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #94a3b8;
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.doc-body {
+  white-space: pre-wrap;
+  font-family: Georgia, serif;
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 12px 0;
+}
+
+  .bulk-doc .doc-body {
+    color: #000;
+  }
+}
+

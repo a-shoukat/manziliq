@@ -8,17 +8,22 @@ const ROLE_HOME: Record<string, { text: string; links: { label: string; page: st
       { label: 'Book a plot', page: 'book-plot' },
       { label: 'My bookings', page: 'my-bookings' },
       { label: 'My payments', page: 'my-payments' },
+      { label: 'Documents', page: 'documents' },
     ],
   },
   dealer: {
     text: 'Discover societies, manage your lots and customer leads.',
-    links: [{ label: 'Dealer portal', page: 'dealer' }],
+    links: [
+      { label: 'Dealer portal', page: 'dealer' },
+      { label: 'Documents', page: 'documents' },
+    ],
   },
   society_admin: {
     text: 'Manage inventory, dealers, bookings and finances.',
     links: [
       { label: 'Booking requests', page: 'society-bookings' },
       { label: 'Financials', page: 'society-financials' },
+      { label: 'Documents', page: 'documents' },
     ],
   },
   super_admin: {

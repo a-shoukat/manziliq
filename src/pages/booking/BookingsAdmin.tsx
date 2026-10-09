@@ -8,6 +8,7 @@ import {
   setBookingStatus,
 } from '../../lib/booking';
 import { notify } from '../../lib/notify';
+import { generateDocument } from '../../lib/legal';
 import type { Booking } from '../../types';
 import { BookingCard } from './MyBookings';
 import { useSocietyId } from '../society/SocietyHub';
@@ -94,7 +95,7 @@ export default function BookingsAdmin({ onNavigate, admin }: Props) {
                 </button>
               )}
               {(b.status === 'pending' || b.status === 'approved') && (
-                <button className="btn secondary small" disabled={acting === b.id} onClick={() => act(b, () => setBookingStatus(b.id, 'cancelled'))}>
+                <button className="btn secondary small" disabled={acting === b.id} onClick={() => act(b, async () => { await setBookingStatus(b.id, 'cancelled'); try { await generateDocument(b, 'cancellation'); } catch { /* ignore */ } })}>
                   Cancel
                 </button>
               )}

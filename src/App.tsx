@@ -30,6 +30,7 @@ import AdminHub from './pages/admin/AdminHub';
 import Disputes from './pages/admin/Disputes';
 import LegalTemplates from './pages/admin/LegalTemplates';
 import PlatformAnalytics from './pages/admin/PlatformAnalytics';
+import Documents from './pages/legal/Documents';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
@@ -180,6 +181,10 @@ function Shell() {
       ) : page === 'admin-analytics' ? (
         <ProtectedRoute onNavigate={navigate} allowedRoles={['super_admin']}>
           <PlatformAnalytics onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'documents' ? (
+        <ProtectedRoute onNavigate={navigate}>
+          <Documents onNavigate={navigate} />
         </ProtectedRoute>
       ) : (
         <ProtectedRoute onNavigate={navigate}>

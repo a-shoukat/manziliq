@@ -1,0 +1,175 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../lib/auth';
+import { fetchDocuments, generateDocument } from '../../lib/legal';
+import { fetchSocietyBookings } from '../../lib/booking';
+import { DOC_TITLES, type Booking, type GeneratedDocType, type GeneratedDocument } from '../../types';
+import { useSocietyId } from '../society/SocietyHub';
+
+const docTypeOptions = Object.keys(DOC_TITLES) as GeneratedDocType[];
+
+/** Module 11 — Document & Legal System: locker, generation, audit trail */
+export default function Documents({ onNavigate }: { onNavigate: (p: string) => void }) {
+  const { session, profile } = useAuth();
+  const { societyId } = useSocietyId();
+  const [docs, setDocs] = useState<GeneratedDocument[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewing, setViewing] = useState<GeneratedDocument | null>(null);
+  const [genBooking, setGenBooking] = useState('');
+  const [genType, setGenType] = useState<GeneratedDocType>('sale_agreement');
+  const [msg, setMsg] = useState<string | null>(null);
+  const [bulk, setBulk] = useState<string[]>([]);
+
+  const isSociety = profile?.role === 'society_admin' || profile?.role === 'super_admin';
+
+  const load = async () => {
+    if (!session) return;
+    setLoading(true);
+    const role = profile?.role;
+    let d: GeneratedDocument[] = [];
+    if (role === 'buyer') d = await fetchDocuments({ customerId: session.user.id });
+    else if (role === 'dealer') d = await fetchDocuments({ dealerId: session.user.id });
+    else if (role === 'society_admin' && societyId) d = await fetchDocuments({ societyId });
+    else if (role === 'super_admin') d = await fetchDocuments({ all: true });
+    setDocs(d);
+    if (isSociety && societyId) setBookings(await fetchSocietyBookings(societyId));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (profile && (profile.role !== 'society_admin' || societyId)) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, societyId]);
+
+  const doGenerate = async () => {
+    const b = bookings.find((x) => x.id === genBooking);
+    if (!b) {
+      setMsg('Select a booking first.');
+      return;
+    }
+    try {
+      await generateDocument(b, genType);
+      setMsg(`${DOC_TITLES[genType]} generated.`);
+      load();
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : 'Generation failed');
+    }
+  };
+
+  const toggleBulk = (id: string) =>
+    setBulk((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const expiringSoon = (d: GeneratedDocument) => {
+    if (!d.expires_at) return false;
+    const days = (new Date(d.expires_at).getTime() - Date.now()) / (24 * 3600 * 1000);
+    return days < 30;
+  };
+
+  const bulkDocs = docs.filter((d) => bulk.includes(d.id));
+
+  return (
+    <div className="container">
+      <div className="topbar">
+        <div>
+          <h1>{profile?.role === 'buyer' ? 'My document locker' : 'Documents'}</h1>
+          <p className="muted" style={{ margin: 0 }}>
+            {profile?.role === 'super_admin' ? 'Audit trail — all documents' : `${docs.length} documents`}
+          </p>
+        </div>
+        <button className="btn secondary small" onClick={() => onNavigate('dashboard')}>Dashboard</button>
+      </div>
+
+      {msg && <div className="notice" style={{ marginBottom: 12 }}>{msg}</div>}
+
+      {isSociety && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <h3>Generate document</h3>
+          <div className="form-row">
+            <label>Booking
+              <select value={genBooking} onChange={(e) => setGenBooking(e.target.value)}>
+                <option value="">Select…</option>
+                {bookings.map((b) => <option key={b.id} value={b.id}>{b.reference_no} · {b.plot_label}</option>)}
+              </select>
+            </label>
+            <label>Type
+              <select value={genType} onChange={(e) => setGenType(e.target.value as GeneratedDocType)}>
+                {docTypeOptions.map((k) => (
+                  <option key={k} value={k}>{DOC_TITLES[k]}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <button className="btn small" onClick={doGenerate}>Generate</button>
+        </div>
+      )}
+
+      {loading ? <p className="muted">Loading…</p> : docs.length === 0 ? (
+        <p className="muted">No documents yet. They generate automatically on booking approval, payments and transfers.</p>
+      ) : (
+        <>
+          {isSociety && bulk.length > 0 && (
+            <div className="compare-bar">
+              <span>{bulk.length} selected</span>
+              <button className="btn small" onClick={() => window.print()}>Print selected (bulk)</button>
+            </div>
+          )}
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead><tr>{isSociety && <th></th>}<th>Document</th><th>Booking</th><th>Version</th><th>Created</th><th>Expiry</th><th></th></tr></thead>
+              <tbody>
+                {docs.map((d) => (
+                  <tr key={d.id}>
+                    {isSociety && (
+                      <td><input type="checkbox" checked={bulk.includes(d.id)} onChange={() => toggleBulk(d.id)} style={{ width: 'auto' }} /></td>
+                    )}
+                    <td>{DOC_TITLES[d.doc_type]}</td>
+                    <td>{d.booking_ref}</td>
+                    <td>v{d.version}</td>
+                    <td>{new Date(d.created_at).toLocaleDateString()}</td>
+                    <td>
+                      {d.expires_at ? (
+                        <span className={`badge ${expiringSoon(d) ? 'warn' : 'ok'}`}>{d.expires_at}</span>
+                      ) : '—'}
+                    </td>
+                    <td className="row-actions">
+                      <button className="link inline" onClick={() => setViewing(d)}>View</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {viewing && (
+        <div className="modal-backdrop" onClick={() => setViewing(null)}>
+          <div className="card receipt wide" onClick={(e) => e.stopPropagation()}>
+            <div className="doc-watermark">MANZILIQ · SYSTEM GENERATED</div>
+            <h2 style={{ textAlign: 'center' }}>{DOC_TITLES[viewing.doc_type]}</h2>
+            <p style={{ textAlign: 'center' }} className="muted small">
+              v{viewing.version} · {new Date(viewing.created_at).toLocaleDateString()}
+            </p>
+            <pre className="doc-body">{viewing.body}</pre>
+            <div className="link-row no-print">
+              <button className="btn small" onClick={() => window.print()}>Print / PDF</button>
+              <button className="btn secondary small" onClick={() => setViewing(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* bulk print area */}
+      {bulkDocs.length > 0 && (
+        <div className="bulk-print">
+          {bulkDocs.map((d) => (
+            <div key={d.id} className="bulk-doc">
+              <h2>{DOC_TITLES[d.doc_type]}</h2>
+              <pre className="doc-body">{d.body}</pre>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

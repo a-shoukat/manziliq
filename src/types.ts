@@ -257,3 +257,37 @@ export const LEGAL_TEMPLATE_KEYS = [
   { key: 'sale_agreement', title: 'Sale Agreement' },
   { key: 'transfer_deed', title: 'Transfer Deed' },
 ];
+
+export type GeneratedDocType =
+  | 'allotment'
+  | 'token_receipt'
+  | 'sale_agreement'
+  | 'installment_receipt'
+  | 'transfer_deed'
+  | 'noc_letter'
+  | 'cancellation';
+
+export interface GeneratedDocument {
+  id: string;
+  booking_id: string | null;
+  customer_id: string | null;
+  society_id: string | null;
+  dealer_id: string | null;
+  doc_type: GeneratedDocType;
+  title: string;
+  body: string;
+  version: number;
+  expires_at: string | null;
+  created_at: string;
+  booking_ref?: string;
+}
+
+export const DOC_TITLES: Record<GeneratedDocType, string> = {
+  allotment: 'Allotment Letter',
+  token_receipt: 'Token Receipt',
+  sale_agreement: 'Sale & Purchase Agreement',
+  installment_receipt: 'Installment Receipt',
+  transfer_deed: 'Transfer Deed',
+  noc_letter: 'NOC Issuance Letter',
+  cancellation: 'Cancellation Letter',
+};

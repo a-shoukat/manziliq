@@ -60,6 +60,7 @@ Browser mein kholo: **http://localhost:5173**
 | v9-ai-price | `v9-ai-price` | + AI Price Prediction: Gemini AI estimate + local comparables fallback |
 | v10-notifications | `v10-notifications` | + Notifications: inbox + triggers + broadcast + templates |
 | v11-admin | `v11-admin` | + Admin Panel: disputes, legal templates, platform analytics |
+| v12-legal | `v12-legal` | + Legal Documentation: auto-generated documents, locker, audit |
 
 ## Accounts kaise banayein (v2-auth)
 

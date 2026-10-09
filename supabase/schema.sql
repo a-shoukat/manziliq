@@ -444,6 +444,39 @@ drop policy if exists "legal_tpl_read" on public.legal_templates;
 create policy "legal_tpl_read" on public.legal_templates
   for select using (published = true);
 
+-- ============ v12-legal: generated documents ============
+
+create table if not exists public.generated_documents (
+  id uuid primary key default gen_random_uuid(),
+  booking_id uuid references public.bookings(id) on delete set null,
+  customer_id uuid references public.profiles(id) on delete set null,
+  society_id uuid references public.profiles(id) on delete set null,
+  dealer_id uuid references public.profiles(id) on delete set null,
+  doc_type text not null
+    check (doc_type in ('allotment', 'token_receipt', 'sale_agreement', 'installment_receipt', 'transfer_deed', 'noc_letter', 'cancellation')),
+  title text not null,
+  body text not null,
+  version int not null default 1,
+  expires_at date,
+  created_at timestamptz not null default now()
+);
+
+alter table public.generated_documents enable row level security;
+
+drop policy if exists "gendoc_read" on public.generated_documents;
+create policy "gendoc_read" on public.generated_documents
+  for select using (
+    auth.uid() = customer_id or auth.uid() = society_id or auth.uid() = dealer_id
+    or exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
+  );
+
+drop policy if exists "gendoc_insert" on public.generated_documents;
+create policy "gendoc_insert" on public.generated_documents
+  for insert with check (
+    auth.uid() = society_id
+    or exists (select 1 from public.profiles where id = auth.uid() and role = 'super_admin')
+  );
+
 drop policy if exists "payments_society_update" on public.payments;
 create policy "payments_society_update" on public.payments
   for update using (

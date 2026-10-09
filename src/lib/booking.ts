@@ -1,5 +1,6 @@
 import { getSupabase } from './supabase';
 import { generateSchedule } from './payment';
+import { generateDocument } from './legal';
 import { notify } from './notify';
 import type { Booking } from '../types';
 
@@ -98,6 +99,12 @@ export async function approveBooking(b: Booking): Promise<void> {
   if (b.customer_id) {
     notify(b.customer_id, 'Booking approved', `Booking ${b.reference_no} approved. Your payment schedule is ready.`, 'booking_approved').catch(() => {});
   }
+  // auto-generate allotment letter on approval
+  try {
+    await generateDocument(b, 'allotment');
+  } catch (e) {
+    console.error('allotment letter failed:', e);
+  }
 }
 
 /** Complete transfer → mark plot sold, booking completed */
@@ -111,6 +118,13 @@ export async function completeTransfer(b: Booking): Promise<void> {
   // trigger: transfer approved → notify customer
   if (b.customer_id) {
     notify(b.customer_id, 'Transfer approved', `Plot transfer for booking ${b.reference_no} is complete.`, 'transfer_approved').catch(() => {});
+  }
+  // auto-generate transfer deed + NOC letter on completion
+  try {
+    await generateDocument(b, 'transfer_deed');
+    await generateDocument(b, 'noc_letter');
+  } catch (e) {
+    console.error('transfer docs failed:', e);
   }
 }
 

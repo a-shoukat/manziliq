@@ -30,6 +30,7 @@ Open http://localhost:5173
 | `v9-ai-price` | 8 · AI Price Prediction | Price estimator: Gemini AI when key present, local comparables fallback (avg PKR/marla from plots+listings), low/mid/high band with reasoning |
 | `v10-notifications` | 9 · Notifications | In-app inbox with unread badge, trigger events (booking/payment/lot/transfer), due-date & late alerts, broadcast (society→customers/dealers, admin→societies/all), message templates, scheduled announcements |
 | `v11-admin` | 10 · Admin Panel | Dispute management (file, mediate, freeze plot, resolution notice, close/escalate), legal template management (edit/preview/version/publish), platform analytics (societies, dealers, customers, GMV, plots, growth) |
+| `v12-legal` | 11 · Legal Documentation | Auto-generated documents (allotment on approval, token receipt, installment receipts, transfer deed + NOC on completion, cancellation letter); auto-fill from DB, society letterhead, watermark, signature placeholders, version history, expiry tracking; customer locker, society bulk print, dealer copies, admin audit trail |
 | `v4-society` | 3 · Society Management | _planned_ |
 | `v5-dealer` | 4 · Dealer Management | _planned_ |
 | `v6-maps` | 5 · Interactive Maps | _planned_ |
@@ -37,6 +38,6 @@ Open http://localhost:5173
 | `v8-payment` | 7 · Payment (simulated) | _planned_ |
 | `v9-ai-price` | 8 · AI Price Prediction | _planned_ |
 | `v10-notifications` | 9 · Notifications | _planned_ |
-| `v11-admin` | 10 · Admin Panel | _planned_ |
-| `v12-legal` | 11 · Legal Documentation | _planned_ |
+| `v11-admin` | 10 · Admin Panel | Dispute management, legal templates, platform analytics |
+| `v12-legal` | 11 · Legal Documentation | Auto-generated documents + locker + audit trail |
 | `v13-analytics` | 12 · Analytics & Reporting | _planned_ |

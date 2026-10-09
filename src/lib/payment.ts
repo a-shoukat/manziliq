@@ -1,6 +1,7 @@
 import { getSupabase } from './supabase';
 import { uploadDocument } from './storage';
 import { notify } from './notify';
+import { generateDocument } from './legal';
 import type { Booking, InstallmentPlan, Payment, PaymentMethod } from '../types';
 
 const DEFAULT_PLANS: Record<string, { months: number; downPct: number }> = {
@@ -132,6 +133,13 @@ export async function payInstallment(
   // trigger: payment received → notify society
   if (p.society_id) {
     notify(p.society_id, 'Payment received', `${p.label ?? 'Payment'} of PKR ${p.amount.toLocaleString()} received (${p.booking_ref ?? ''}).`, 'payment_received').catch(() => {});
+  }
+  // auto-generate installment receipt
+  try {
+    const { data: b } = await supabase.from('bookings').select('*').eq('id', p.booking_id).single();
+    if (b) await generateDocument(b as Booking, 'installment_receipt');
+  } catch (e) {
+    console.error('receipt gen failed:', e);
   }
 }
 
