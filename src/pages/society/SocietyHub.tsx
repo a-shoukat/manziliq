@@ -23,6 +23,9 @@ export function useSocietyId(): { societyId: string | null; societies: { id: str
 
 export default function SocietyHub({ onNavigate }: { onNavigate: (p: string) => void }) {
   const cards = [
+    { page: 'society-profile', title: 'Society Profile', desc: 'Edit name, address, developer info' },
+    { page: 'society-direct-sale', title: 'Direct Sale', desc: 'Record walk-in / office sale, mark plot sold' },
+    { page: 'society-transfer-review', title: 'Transfer Requests', desc: 'Review dealer transfers, approve → sold' },
     { page: 'society-inventory', title: 'Plot Inventory', desc: 'CSV upload, manual entry, block grouping, edit / delete' },
     { page: 'society-map', title: 'Interactive Plot Map', desc: 'Color-coded availability, block switcher, zoom' },
     { page: 'society-dealers', title: 'Dealer Management', desc: 'Join requests, lot assignment, commission, revoke' },

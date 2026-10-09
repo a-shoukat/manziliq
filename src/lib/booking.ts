@@ -140,3 +140,92 @@ export async function fetchAvailablePlots(societyId: string) {
     .order('plot_no');
   return (data as { id: string; block: string; plot_no: string; size_marla: number; base_price: number }[]) ?? [];
 }
+
+/** WBS: Dealer transfer-request queue — dealer submits, society approves. */
+export interface TransferRequest {
+  id: string;
+  dealer_id: string;
+  society_id: string;
+  plot_id: string;
+  buyer_name: string;
+  buyer_phone: string | null;
+  buyer_cnic: string | null;
+  sale_price: number;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  plot_label?: string;
+  dealer_email?: string;
+}
+
+export async function submitTransferRequest(input: {
+  dealer_id: string;
+  society_id: string;
+  plot_id: string;
+  buyer_name: string;
+  buyer_phone?: string;
+  buyer_cnic?: string;
+  sale_price: number;
+}): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Database not connected');
+  if (!input.buyer_name.trim()) throw new Error('Buyer name is required.');
+  if (input.sale_price <= 0) throw new Error('Sale price must be greater than zero.');
+  const { error } = await supabase.from('transfer_requests').insert({
+    dealer_id: input.dealer_id,
+    society_id: input.society_id,
+    plot_id: input.plot_id,
+    buyer_name: input.buyer_name.trim(),
+    buyer_phone: input.buyer_phone?.trim() || null,
+    buyer_cnic: input.buyer_cnic?.trim() || null,
+    sale_price: input.sale_price,
+    status: 'pending',
+  });
+  if (error) throw error;
+  // trigger: transfer request submitted → notify society
+  notify(input.society_id, 'Transfer request submitted', `Dealer requested plot transfer for ${input.buyer_name.trim()} (PKR ${input.sale_price.toLocaleString()}).`, 'transfer_request').catch(() => {});
+}
+
+export async function fetchDealerTransferRequests(dealerId: string): Promise<TransferRequest[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase.from('transfer_requests').select('*').eq('dealer_id', dealerId).order('created_at', { ascending: false });
+  const list = (data as TransferRequest[]) ?? [];
+  for (const r of list) {
+    const { data: p } = await supabase.from('plots').select('block, plot_no').eq('id', r.plot_id).single();
+    r.plot_label = p ? `${(p as { block: string }).block}-${(p as { plot_no: string }).plot_no}` : '—';
+  }
+  return list;
+}
+
+export async function fetchSocietyTransferRequests(societyId: string): Promise<TransferRequest[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase.from('transfer_requests').select('*').eq('society_id', societyId).order('created_at', { ascending: false });
+  const list = (data as TransferRequest[]) ?? [];
+  for (const r of list) {
+    const { data: p } = await supabase.from('plots').select('block, plot_no').eq('id', r.plot_id).single();
+    r.plot_label = p ? `${(p as { block: string }).block}-${(p as { plot_no: string }).plot_no}` : '—';
+    const { data: d } = await supabase.from('profiles').select('email').eq('id', r.dealer_id).single();
+    r.dealer_email = (d as { email: string } | null)?.email ?? '—';
+  }
+  return list;
+}
+
+/** Society approves a transfer request → plot marked sold. */
+export async function decideTransferRequest(id: string, approved: boolean): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Database not connected');
+  const { data: r } = await supabase.from('transfer_requests').select('*').eq('id', id).single();
+  if (!r) throw new Error('Request not found');
+  const req = r as TransferRequest;
+  const { error } = await supabase
+    .from('transfer_requests')
+    .update({ status: approved ? 'approved' : 'rejected', decided_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
+  if (approved) {
+    await supabase.from('plots').update({ status: 'sold' }).eq('id', req.plot_id);
+  }
+  // trigger: transfer request decided → notify dealer
+  notify(req.dealer_id, approved ? 'Transfer approved ✓' : 'Transfer rejected', `Transfer request for plot ${req.plot_label ?? ''} (${req.buyer_name}) was ${approved ? 'approved — plot marked sold.' : 'rejected.'}`, approved ? 'transfer_approved' : 'transfer_rejected').catch(() => {});
+}

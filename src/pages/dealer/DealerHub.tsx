@@ -7,6 +7,8 @@ export default function DealerHub({ onNavigate }: { onNavigate: (p: string) => v
     { page: 'dealer-discover', title: 'Discover Societies', desc: 'Browse societies, view lots, send join requests' },
     { page: 'dealer-lots', title: 'My Lots & Plots', desc: 'Assigned plots, mark showing to client, plot map' },
     { page: 'dealer-leads', title: 'Leads & Pipeline', desc: 'Customer leads, call/visit log, 6-stage deal pipeline' },
+    { page: 'dealer-create-booking', title: 'Create Booking', desc: 'Book a plot for a customer' },
+    { page: 'dealer-transfer-requests', title: 'Transfer Requests', desc: 'Request plot transfers for buyers' },
     { page: 'dealer-verify-payments', title: 'Verify Payments', desc: 'Review customer receipts, approve or reject' },
   ];
   return (

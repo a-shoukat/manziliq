@@ -145,6 +145,47 @@ export async function payInstallment(
   }
 }
 
+/** Customer submits token payment receipt at booking time.
+ * Creates a pending payment record for society/dealer verification.
+ * The booking is approved only after the token receipt is verified. */
+export async function submitTokenPayment(
+  booking: Booking,
+  amount: number,
+  method: PaymentMethod,
+  proofFile?: File | null,
+): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Database not connected');
+  if (amount <= 0) throw new Error('Token amount must be greater than zero.');
+  if (method === 'bank' && !proofFile) {
+    throw new Error('Bank transfer requires a receipt/screenshot upload.');
+  }
+  let proofUrl: string | null = null;
+  if (proofFile) proofUrl = await uploadDocument(proofFile);
+  const { error } = await supabase.from('payments').insert({
+    booking_id: booking.id,
+    customer_id: booking.customer_id,
+    society_id: booking.society_id,
+    amount,
+    method,
+    proof_url: proofUrl,
+    status: 'pending',
+    paid_at: new Date().toISOString(),
+    receipt_no: makeReceiptNo(),
+    label: 'Token payment',
+  });
+  if (error) throw error;
+  // trigger: token receipt submitted → notify society for verification
+  if (booking.society_id) {
+    notify(
+      booking.society_id,
+      'Token receipt submitted',
+      `Token payment of PKR ${amount.toLocaleString()} for booking ${booking.reference_no} needs verification.`,
+      'payment_verify',
+    ).catch(() => {});
+  }
+}
+
 /** Society admin / dealer verifies a submitted receipt. */
 export async function verifyPayment(
   paymentId: string,
@@ -186,6 +227,33 @@ export async function verifyPayment(
       if (b) await generateDocument(b as Booking, 'installment_receipt');
     } catch (e) {
       console.error('receipt gen failed:', e);
+    }
+  }
+  // token payment verified → approve the booking as well (schedule + allotment)
+  if (approved && pay.label === 'Token payment') {
+    try {
+      const { data: b } = await supabase.from('bookings').select('*').eq('id', pay.booking_id).single();
+      const bk = b as Booking | null;
+      if (bk && bk.status === 'pending') {
+        await supabase.from('bookings').update({ status: 'approved' }).eq('id', bk.id);
+        let total = 0;
+        if (bk.plot_id) {
+          await supabase.from('plots').update({ status: 'reserved' }).eq('id', bk.plot_id);
+          const { data: p } = await supabase.from('plots').select('base_price').eq('id', bk.plot_id).single();
+          total = Number((p as { base_price: number } | null)?.base_price ?? 0);
+        }
+        await generateSchedule({ ...bk, status: 'approved' }, total);
+        if (bk.customer_id) {
+          notify(bk.customer_id, 'Booking approved', `Booking ${bk.reference_no} approved. Your payment schedule is ready.`, 'booking_approved').catch(() => {});
+        }
+        try {
+          await generateDocument(bk, 'allotment');
+        } catch (e) {
+          console.error('allotment letter failed:', e);
+        }
+      }
+    } catch (e) {
+      console.error('token booking approval failed:', e);
     }
   }
 }

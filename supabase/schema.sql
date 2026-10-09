@@ -510,3 +510,32 @@ alter table public.push_tokens enable row level security;
 drop policy if exists "push_tokens_owner" on public.push_tokens;
 create policy "push_tokens_owner" on public.push_tokens
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create table if not exists public.transfer_requests (
+  id uuid primary key default gen_random_uuid(),
+  dealer_id uuid not null references public.profiles(id) on delete cascade,
+  society_id uuid not null references public.profiles(id) on delete cascade,
+  plot_id uuid not null references public.plots(id) on delete cascade,
+  buyer_name text not null,
+  buyer_phone text,
+  buyer_cnic text,
+  sale_price numeric not null default 0,
+  status text not null default 'pending'
+    check (status in ('pending', 'approved', 'rejected')),
+  decided_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.transfer_requests enable row level security;
+
+drop policy if exists "tr_dealer" on public.transfer_requests;
+create policy "tr_dealer" on public.transfer_requests
+  for all using (auth.uid() = dealer_id) with check (auth.uid() = dealer_id);
+
+drop policy if exists "tr_society_read" on public.transfer_requests;
+create policy "tr_society_read" on public.transfer_requests
+  for select using (auth.uid() = society_id);
+
+drop policy if exists "tr_society_update" on public.transfer_requests;
+create policy "tr_society_update" on public.transfer_requests
+  for update using (auth.uid() = society_id);

@@ -191,3 +191,24 @@ export async function fetchSocietyDealers(societyId: string): Promise<{ id: stri
   }
   return out;
 }
+
+/** Fetch a society's editable profile details. */
+export async function fetchSocietyProfile(societyId: string): Promise<{ society_name: string; address: string; developer_info: string | null } | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data } = await supabase.from('society_details').select('society_name, address, developer_info').eq('profile_id', societyId).single();
+  return data as { society_name: string; address: string; developer_info: string | null } | null;
+}
+
+/** Update a society's profile (WBS: Society can edit profile after approval). */
+export async function updateSocietyProfile(societyId: string, input: { society_name: string; address: string; developer_info?: string | null }): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Database not connected');
+  if (!input.society_name.trim()) throw new Error('Society name is required.');
+  if (!input.address.trim()) throw new Error('Address is required.');
+  const { error } = await supabase
+    .from('society_details')
+    .update({ society_name: input.society_name.trim(), address: input.address.trim(), developer_info: input.developer_info?.trim() || null })
+    .eq('profile_id', societyId);
+  if (error) throw error;
+}

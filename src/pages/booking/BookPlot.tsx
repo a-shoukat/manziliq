@@ -3,8 +3,9 @@ import { useAuth } from '../../lib/auth';
 import { fetchApprovedSocieties } from '../../lib/society';
 import { fetchSocietyDealers } from '../../lib/society';
 import { createBooking, fetchAvailablePlots } from '../../lib/booking';
+import { submitTokenPayment } from '../../lib/payment';
 import { formatPrice } from '../../lib/properties';
-import { INSTALLMENT_PLANS, type Booking } from '../../types';
+import { INSTALLMENT_PLANS, type Booking, type PaymentMethod } from '../../types';
 
 /** WBS: Customer Portal — Booking Flow (6 features) */
 export default function BookPlot({ onNavigate }: { onNavigate: (p: string) => void }) {
@@ -19,7 +20,8 @@ export default function BookPlot({ onNavigate }: { onNavigate: (p: string) => vo
   const [dealerId, setDealerId] = useState('');
   const [token, setToken] = useState('');
   const [plan, setPlan] = useState(INSTALLMENT_PLANS[0]);
-  const [payMethod, setPayMethod] = useState('JazzCash');
+  const [payMethod, setPayMethod] = useState<PaymentMethod>('bank');
+  const [proof, setProof] = useState<File | null>(null);
   const [done, setDone] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +56,11 @@ export default function BookPlot({ onNavigate }: { onNavigate: (p: string) => vo
         token_amount: parseFloat(token) || 0,
         installment_plan: plan,
       });
-      // token "paid" online (simulated)
+      // token paid via receipt upload → pending verification by society/dealer
+      const amt = parseFloat(token) || 0;
+      if (amt > 0) {
+        await submitTokenPayment(b, amt, payMethod, proof);
+      }
       setDone(b);
       setStep(5);
     } catch (err) {
@@ -133,23 +139,26 @@ export default function BookPlot({ onNavigate }: { onNavigate: (p: string) => vo
 
         {step === 3 && (
           <>
-            <p className="muted">Pay token amount online (simulated)</p>
+            <p className="muted">Token payment — upload your transfer receipt for verification</p>
             <label>Token amount (PKR)
               <input type="number" min={0} value={token} onChange={(e) => setToken(e.target.value)} placeholder="e.g. 100000" />
             </label>
             <label>Payment method
-              <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
-                <option>JazzCash</option>
-                <option>EasyPaisa</option>
-                <option>Bank transfer</option>
+              <select value={payMethod} onChange={(e) => setPayMethod(e.target.value as PaymentMethod)}>
+                <option value="bank">Bank transfer</option>
+                <option value="cash">Cash</option>
+                <option value="cheque">Cheque</option>
               </select>
             </label>
+            <label>Transfer receipt / screenshot {payMethod === 'bank' ? '(required)' : '(optional)'}
+              <input type="file" accept="image/*,.pdf" onChange={(e) => setProof(e.target.files?.[0] ?? null)} />
+            </label>
             <div className="notice" style={{ marginBottom: 12 }}>
-              Demo mode — no real money moves. Real payment gateways plug in here.
+              Your booking stays pending until the society verifies your token receipt.
             </div>
             <div className="link-row">
               <button className="btn secondary small" onClick={() => setStep(2)}>Back</button>
-              <button className="btn small" onClick={() => setStep(4)}>Pay {token ? formatPrice(parseFloat(token)) : ''}</button>
+              <button className="btn small" onClick={() => setStep(4)}>Continue {token ? formatPrice(parseFloat(token)) : ''}</button>
             </div>
           </>
         )}

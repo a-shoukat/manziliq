@@ -10,10 +10,15 @@ import Compare from './pages/Compare';
 import AddProperty from './pages/AddProperty';
 import AdminVerification from './pages/AdminVerification';
 import SocietyHub from './pages/society/SocietyHub';
+import SocietyProfile from './pages/society/Profile';
+import DirectSale from './pages/society/DirectSale';
+import TransferReview from './pages/society/TransferReview';
 import Inventory from './pages/society/Inventory';
 import PlotMap from './pages/society/PlotMap';
 import Dealers from './pages/society/Dealers';
 import DealerHub from './pages/dealer/DealerHub';
+import DealerCreateBooking from './pages/dealer/DealerCreateBooking';
+import TransferRequests from './pages/dealer/TransferRequests';
 import Discover from './pages/dealer/Discover';
 import MyLots from './pages/dealer/MyLots';
 import Leads from './pages/dealer/Leads';
@@ -117,6 +122,18 @@ function Shell() {
         <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
           <Dealers onNavigate={navigate} />
         </ProtectedRoute>
+      ) : page === 'society-profile' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
+          <SocietyProfile onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'society-direct-sale' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
+          <DirectSale onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'society-transfer-review' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['society_admin', 'super_admin']}>
+          <TransferReview onNavigate={navigate} />
+        </ProtectedRoute>
       ) : page === 'dealer' ? (
         <ProtectedRoute onNavigate={navigate} allowedRoles={['dealer', 'super_admin']}>
           <DealerHub onNavigate={navigate} />
@@ -136,6 +153,14 @@ function Shell() {
       ) : page === 'dealer-verify-payments' ? (
         <ProtectedRoute onNavigate={navigate} allowedRoles={['dealer', 'super_admin']}>
           <VerifyPayments onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'dealer-create-booking' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['dealer', 'super_admin']}>
+          <DealerCreateBooking onNavigate={navigate} />
+        </ProtectedRoute>
+      ) : page === 'dealer-transfer-requests' ? (
+        <ProtectedRoute onNavigate={navigate} allowedRoles={['dealer', 'super_admin']}>
+          <TransferRequests onNavigate={navigate} />
         </ProtectedRoute>
       ) : page === 'map-view' ? (
         <ProtectedRoute onNavigate={navigate}>
